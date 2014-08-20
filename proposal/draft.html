@@ -1,0 +1,175 @@
+<h1>Alignment helpers for C++</h1>
+
+<ul>
+<li>Document Number: NXXXX</li>
+<li>Date: 2014-08-20</li>
+<li>Programming Language C++, Numerics Working Group</li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;&#x69;&#108;&#x74;&#111;:&#102;&#x6D;&#97;&#x74;&#116;&#104;&#101;&#119;&#53;87&#54;&#64;&#x67;&#x6D;&#x61;&#x69;l&#x2E;&#x63;&#111;&#x6D;">&#102;&#x6D;&#97;&#x74;&#116;&#104;&#101;&#119;&#53;87&#54;&#64;&#x67;&#x6D;&#x61;&#x69;l&#x2E;&#x63;&#111;&#x6D;</a></li>
+</ul>
+
+<p>The latest draft, reference header, and links to past discussions on github: </p>
+
+<ul>
+<li>https://github.com/fmatthew5876/stdcxx-align</li>
+</ul>
+
+<h1>Introduction</h1>
+
+<p>This proposal adds support for a few mnemonics which are useful for
+low level code which has to manually align blocks of memory.</p>
+
+<h1>Impact on the standard</h1>
+
+<p>This proposal is a pure library extension. 
+It does not require any changes in the core language and
+does not depend on any other library extensions.
+The proposal is composed entirely of free functions. The
+proposed functions are added to the <code>&lt;memory&gt;</code> header.
+No new headers are introduced.</p>
+
+<p>The implementation of this proposal is trivial and has even been provided
+within the paper itself.</p>
+
+<h1>Motivation</h1>
+
+<p>Manually aligning blocks of memory is an operation often required
+in low level applications such as memory allocators, simd code, device
+drivers, compression routines, encryption, and binary IO.</p>
+
+<p>The operations <code>is_aligned()</code>, <code>align_up()</code>, and <code>align_down()</code>
+are commonly reimplemented over and over again as macros in C or
+inline template functions in C++.
+For example in the linux kernel,
+they have implemented the following corresponding macros in C: <code>IS_ALIGNED</code>, <code>__ALIGN_MASK</code>, and <code>ALIGN</code> [<a href="#LXR">LXR</a>].</p>
+
+<p>We propose to standardize these 3 simple mnemonics for the following
+reasons:</p>
+
+<ul>
+<li>They are fundamental low level building blocks which are universally applicable to a wide variety of domains</li>
+<li>By providing standard library implementations, users do not have to google, write, test, and maintain their own when they need them</li>
+<li>These are so trivial to implement that the full implementation is included in this paper.</li>
+<li>Adding more simple low level tools can help make C++ more popular with the embedded and device driver developer community.</li>
+</ul>
+
+<h1>Current state of the art</h1>
+
+<p>We currently have <code>std::align</code> in the standard for doing alignment calculations.
+The function <code>std::align</code>
+has one specific use case, that is to carve out an aligned buffer of a known size within a larger buffer.
+In order to use <code>std::align</code>, the user must a priori know the size of the aligned buffer
+they require. Unfortunately in some use cases, even calculating the size of this buffer
+as an input to <code>std::align</code> itself requires doing alignment calculations.
+Consider the following example of using aligned SIMD registers to process a memory buffer.
+The alignment calculations here cannot be done with <code>std::align</code>.</p>
+
+<pre><code>void process(char* b, char* e) {
+  char* pb = std::min((char*)std::align_up(b, sizeof(simd16)), e);
+  char* pe = (char*)std::align_down(e, sizeof(simd16));
+
+  for(char* p = b; p &lt; pb; ++p) {
+    process1(p);
+  }
+  for(char* p = pb; p &lt; pe; p += sizeof(simd16)) {
+    simd16 x = simd16_aligned_load(p);
+    process16(x);
+    simd16_aligned_store(x, p);
+  }
+  for(char* p = pe; p &lt; e; ++p) {
+    process1(p);
+  }
+}
+</code></pre>
+
+<p>We conclude that <code>std::align</code> is much too specific for general alignment calculations. It has a narrow
+use case and should only be considered as a helper function for when that use case is needed.</p>
+
+<h1>Technical Specification</h1>
+
+<p>We will now describe the additions to the <code>&lt;memory&gt;</code> header. This is a procedural library implemented
+entirely using <code>constexpr</code> templated free functions.
+All functions have been qualified with <code>noexcept</code>. These
+operations are most often used in highly optimized numerical code where the overhead of exception
+handling would be inappropriate. 
+For functions which have pre-conditions on their inputs, we
+have opted for maximal efficiency with unchecked narrow contracts.</p>
+
+<p>The template arguments for each proposed function are named <code>integral</code> to indicate generic support
+for all builtin integral types, signed and unsigned. This also includes implementation specific
+wider integral types. All of the functions in this proposal
+accept signed integers but have undefined results for negative numbers.
+The example implementations depend on a 2's complement representation but implementability of this proposal does not.</p>
+
+<h4>List of Functions</h4>
+
+<p>For all of the following functions, the result is undefined if <code>x &lt; 0</code> or <code>align</code> is not a power of 2.</p>
+
+<pre><code>template &lt;class integral&gt;
+constexpr bool is_aligned(integral x, size_t align) noexcept;
+</code></pre>
+
+<ul>
+<li><em>Returns:</em> <code>true</code> if <code>x</code> is a multiple of <code>align</code>.</li>
+<li><em>Implementation:</em> <code>(x &amp; (integral(a) - 1)) == 0</code></li>
+</ul>
+
+<!-- -->
+
+<pre><code>bool is_aligned(void* val, size_t align) noexcept;
+</code></pre>
+
+<ul>
+<li><em>Returns:</em> <code>is_aligned(uintptr_t(val), align)</code>.</li>
+</ul>
+
+<!-- -->
+
+<pre><code>template &lt;class integral&gt;
+constexpr integral align_up(integral x, size_t align) noexcept;
+</code></pre>
+
+<ul>
+<li><em>Returns:</em> The unique value <code>n</code> such that <code>is_aligned(n, align) &amp;&amp; n &gt;= x</code>.</li>
+<li><em>Implementation:</em> <code>(x + (integral(a) - 1)) &amp; -integral(a)</code></li>
+</ul>
+
+<!-- -->
+
+<pre><code>void* align_up(void* val, size_t align) noexcept;
+</code></pre>
+
+<ul>
+<li><em>Returns:</em> <code>(void*)align_up(uintptr_t(val), align)</code>.</li>
+</ul>
+
+<!-- -->
+
+<pre><code>template &lt;class integral&gt;
+constexpr integral align_down(integral x, size_t align) noexcept;
+</code></pre>
+
+<ul>
+<li><em>Returns:</em> The unique value <code>n</code> such that <code>is_aligned(n, align) &amp;&amp; n &lt;= x</code>.</li>
+<li><em>Implementation:</em> <code>x &amp; -integral(a)</code></li>
+</ul>
+
+<!-- -->
+
+<pre><code>void* align_down(void* val, size_t align) noexcept;
+</code></pre>
+
+<ul>
+<li><em>Returns:</em> <code>(void*)align_down(uintptr_t(val), align)</code>.</li>
+</ul>
+
+<h1>Acknowledgments</h1>
+
+<p>This mini-proposal was originally part of [<a href="#N3864">N3864</a>] but has been broken out as it is somewhat unrelated to the core
+purpose of that paper. Thank you to everyone who has been credited by N3864 for also helping with this proposal.</p>
+
+<h1>References</h1>
+
+<ul>
+<li><a name="N3864"></a>[N3864] Fioravante, Matthew <em>N3864 - A constexpr bitwise operations library for C++</em>, Available online at <a href="https://github.com/fmatthew5876/stdcxx-bitops">https://github.com/fmatthew5876/stdcxx-bitops</a></li>
+<li><a name="LXR"></a>[LXR] <em>Linux/include/linux/kernel.h</em> Available online at <a href="http://lxr.free-electrons.com/source/include/linux/kernel.h#L50">http://lxr.free-electrons.com/source/include/linux/kernel.h#L50</a></li>
+</ul>
