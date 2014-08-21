@@ -138,7 +138,10 @@ For all of the following functions, the result is undefined if `x < 0` or `align
 
 * *Returns:* The unique value `np` such that `is_aligned(np, align) && np <= x`.
 
-The result of `align_up` or `align_down` with parameters of object pointer type is undefined if there does not exist a safely-derived pointer that meets the requirements. [ Note: That is, that the aligned version of the pointer would be before the beginning of the memory block allocated for the object or array of objects, or after one past the end of that memory block. -- end note ]
+The result of `align_up` or `align_down` with parameters of object pointer type is undefined 
+if the resulting pointer value is before or after one past the end of the array or memory block
+containing the original pointer. The result of `align_up`, `align_down`, and `is_aligned` is
+undefined if `align > PTRDIFF_MAX`.
 
 Example Implementations
 ============
