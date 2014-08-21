@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;&#x69;&#108;&#x74;&#111;:&#102;&#x6D;&#97;&#x74;&#116;&#104;&#101;&#119;&#53;87&#54;&#64;&#x67;&#x6D;&#x61;&#x69;l&#x2E;&#x63;&#111;&#x6D;">&#102;&#x6D;&#97;&#x74;&#116;&#104;&#101;&#119;&#53;87&#54;&#64;&#x67;&#x6D;&#x61;&#x69;l&#x2E;&#x63;&#111;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;i&#x6C;&#x74;&#111;:&#x66;&#109;&#x61;&#116;t&#x68;e&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#97;&#105;&#x6C;&#46;&#99;&#111;&#109;">&#x66;&#109;&#x61;&#116;t&#x68;e&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#97;&#105;&#x6C;&#46;&#99;&#111;&#109;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -25,10 +25,8 @@ It does not require any changes in the core language and
 does not depend on any other library extensions.
 The proposal is composed entirely of free functions. The
 proposed functions are added to the <code>&lt;memory&gt;</code> header.
-No new headers are introduced.</p>
-
-<p>The implementation of this proposal is trivial and has even been provided
-within the paper itself.</p>
+No new headers are introduced and the implementations 
+of these functions on common platforms are trivial.</p>
 
 <h1>Motivation</h1>
 
@@ -37,7 +35,7 @@ in low level applications such as memory allocators, simd code, device
 drivers, compression routines, encryption, and binary IO.</p>
 
 <p>The operations <code>is_aligned()</code>, <code>align_up()</code>, and <code>align_down()</code>
-are commonly reimplemented over and over again as macros in C or
+are commonly reimplemented over and over again as macros in C and/or
 inline template functions in C++.
 For example in the linux kernel,
 they have implemented the following corresponding macros in C: <code>IS_ALIGNED</code>, <code>__ALIGN_MASK</code>, and <code>ALIGN</code> [<a href="#LXR">LXR</a>].</p>
@@ -110,16 +108,15 @@ constexpr bool is_aligned(integral x, size_t align) noexcept;
 
 <ul>
 <li><em>Returns:</em> <code>true</code> if <code>x</code> is a multiple of <code>align</code>.</li>
-<li><em>Implementation:</em> <code>(x &amp; (integral(a) - 1)) == 0</code></li>
 </ul>
 
 <!-- -->
 
-<pre><code>bool is_aligned(void* val, size_t align) noexcept;
+<pre><code>bool is_aligned(void* p, size_t align) noexcept;
 </code></pre>
 
 <ul>
-<li><em>Returns:</em> <code>is_aligned(uintptr_t(val), align)</code>.</li>
+<li><em>Returns:</em> <code>true</code> if <code>p</code> is aligned by <code>align</code>.</li>
 </ul>
 
 <!-- -->
@@ -130,16 +127,15 @@ constexpr integral align_up(integral x, size_t align) noexcept;
 
 <ul>
 <li><em>Returns:</em> The unique value <code>n</code> such that <code>is_aligned(n, align) &amp;&amp; n &gt;= x</code>.</li>
-<li><em>Implementation:</em> <code>(x + (integral(a) - 1)) &amp; -integral(a)</code></li>
 </ul>
 
 <!-- -->
 
-<pre><code>void* align_up(void* val, size_t align) noexcept;
+<pre><code>void* align_up(void* p, size_t align) noexcept;
 </code></pre>
 
 <ul>
-<li><em>Returns:</em> <code>(void*)align_up(uintptr_t(val), align)</code>.</li>
+<li><em>Returns:</em> The unique value <code>np</code> such that <code>is_aligned(np, align) &amp;&amp; np &gt;= x</code>.</li>
 </ul>
 
 <!-- -->
@@ -150,7 +146,6 @@ constexpr integral align_down(integral x, size_t align) noexcept;
 
 <ul>
 <li><em>Returns:</em> The unique value <code>n</code> such that <code>is_aligned(n, align) &amp;&amp; n &lt;= x</code>.</li>
-<li><em>Implementation:</em> <code>x &amp; -integral(a)</code></li>
 </ul>
 
 <!-- -->
@@ -159,13 +154,40 @@ constexpr integral align_down(integral x, size_t align) noexcept;
 </code></pre>
 
 <ul>
-<li><em>Returns:</em> <code>(void*)align_down(uintptr_t(val), align)</code>.</li>
+<li><em>Returns:</em> The unique value <code>np</code> such that <code>is_aligned(np, align) &amp;&amp; np &lt;= x</code>.</li>
 </ul>
+
+<p>The result of <code>align_up</code> or <code>align_down</code> with parameters of object pointer type is undefined if there does not exist a safely-derived pointer that meets the requirements. [ Note: That is, that the aligned version of the pointer would be before the beginning of the memory block allocated for the object or array of objects, or after one past the end of that memory block. -- end note ]</p>
+
+<h1>Example Implementations</h1>
+
+<p>For the integral types, these alignment functions have trivial implementations:</p>
+
+<ul>
+<li><code>integral align_up(integral x, size_t a)</code> -> <code>(x + (integral(a) - 1)) &amp; -integral(a)</code></li>
+<li><code>integral align_down(integral x, size_t a)</code> -> <code>x &amp; -integral(a)</code></li>
+<li><code>bool is_aligned(integral x, size_t a)</code> -> <code>(x &amp; (integral(a) - 1)) == 0</code></li>
+</ul>
+
+<p>For most modern systems, the pointer variants can be trivially implemented by casting to <code>uintptr_t</code></p>
+
+<ul>
+<li><code>void* align_up(void* p, size_t a)</code> -> <code>reinterpret_cast&lt;void*&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p), a))</code></li>
+<li><code>void* align_down(void* p, size_t a)</code> -> <code>reinterpret_cast&lt;void*&gt;(align_down(reinterpret_cast&lt;uintptr_t&gt;(p), a))</code></li>
+<li><code>bool is_aligned(void* p, size_t a)</code> -> <code>is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p), a)</code></li>
+</ul>
+
+<p>Note that the above assumes the above assume a flat address space and that arithmetic on <code>uintptr_t</code> is
+equivalent to arithmetic on <code>char*</code>. Neither of which is required by the standard. It is entirely possible
+for an implementation to perform any transformation when casting <code>void*</code> to <code>uintptr_t</code> as long the 
+transformation can be reversed when casting back from <code>uintptr_t</code> to <code>void*</code>.</p>
 
 <h1>Acknowledgments</h1>
 
 <p>This mini-proposal was originally part of [<a href="#N3864">N3864</a>] but has been broken out as it is somewhat unrelated to the core
 purpose of that paper. Thank you to everyone who has been credited by N3864 for also helping with this proposal.</p>
+
+<p>Special thanks to everyone on the std-proposals forum for their valuable insight and feedback.</p>
 
 <h1>References</h1>
 

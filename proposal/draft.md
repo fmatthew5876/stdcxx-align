@@ -24,10 +24,8 @@ It does not require any changes in the core language and
 does not depend on any other library extensions.
 The proposal is composed entirely of free functions. The
 proposed functions are added to the `<memory>` header.
-No new headers are introduced.
-
-The implementation of this proposal is trivial and has even been provided
-within the paper itself.
+No new headers are introduced and the implementations 
+of these functions on common platforms are trivial.
 
 Motivation
 ================
@@ -37,7 +35,7 @@ in low level applications such as memory allocators, simd code, device
 drivers, compression routines, encryption, and binary IO.
 
 The operations `is_aligned()`, `align_up()`, and `align_down()`
-are commonly reimplemented over and over again as macros in C or
+are commonly reimplemented over and over again as macros in C and/or
 inline template functions in C++.
 For example in the linux kernel,
 they have implemented the following corresponding macros in C: `IS_ALIGNED`, `__ALIGN_MASK`, and `ALIGN` \[[LXR](#LXR)\].
@@ -107,13 +105,12 @@ For all of the following functions, the result is undefined if `x < 0` or `align
     constexpr bool is_aligned(integral x, size_t align) noexcept;
 
 * *Returns:* `true` if `x` is a multiple of `align`.
-* *Implementation:* `(x & (integral(a) - 1)) == 0`
     
 <!-- -->
 
-    bool is_aligned(void* val, size_t align) noexcept;
+    bool is_aligned(void* p, size_t align) noexcept;
 
-* *Returns:* `is_aligned(uintptr_t(val), align)`.
+* *Returns:* `true` if `p` is aligned by `align`.
     
 <!-- -->
 
@@ -121,13 +118,12 @@ For all of the following functions, the result is undefined if `x < 0` or `align
     constexpr integral align_up(integral x, size_t align) noexcept;
 
 * *Returns:* The unique value `n` such that `is_aligned(n, align) && n >= x`.
-* *Implementation:* `(x + (integral(a) - 1)) & -integral(a)`
     
 <!-- -->
 
-    void* align_up(void* val, size_t align) noexcept;
+    void* align_up(void* p, size_t align) noexcept;
 
-* *Returns:* `(void*)align_up(uintptr_t(val), align)`.
+* *Returns:* The unique value `np` such that `is_aligned(np, align) && np >= x`.
     
 <!-- -->
     
@@ -135,19 +131,42 @@ For all of the following functions, the result is undefined if `x < 0` or `align
     constexpr integral align_down(integral x, size_t align) noexcept;
 
 * *Returns:* The unique value `n` such that `is_aligned(n, align) && n <= x`.
-* *Implementation:* `x & -integral(a)`
     
 <!-- -->
 
     void* align_down(void* val, size_t align) noexcept;
 
-* *Returns:* `(void*)align_down(uintptr_t(val), align)`.
+* *Returns:* The unique value `np` such that `is_aligned(np, align) && np <= x`.
+
+The result of `align_up` or `align_down` with parameters of object pointer type is undefined if there does not exist a safely-derived pointer that meets the requirements. [ Note: That is, that the aligned version of the pointer would be before the beginning of the memory block allocated for the object or array of objects, or after one past the end of that memory block. -- end note ]
+
+Example Implementations
+============
+
+For the integral types, these alignment functions have trivial implementations:
+
+* `integral align_up(integral x, size_t a)` -> `(x + (integral(a) - 1)) & -integral(a)`
+* `integral align_down(integral x, size_t a)` -> `x & -integral(a)`
+* `bool is_aligned(integral x, size_t a)` -> `(x & (integral(a) - 1)) == 0`
+
+For most modern systems, the pointer variants can be trivially implemented by casting to `uintptr_t`
+
+* `void* align_up(void* p, size_t a)` -> `reinterpret_cast<void*>(align_up(reinterpret_cast<uintptr_t>(p), a))`
+* `void* align_down(void* p, size_t a)` -> `reinterpret_cast<void*>(align_down(reinterpret_cast<uintptr_t>(p), a))`
+* `bool is_aligned(void* p, size_t a)` -> `is_aligned(reinterpret_cast<uintptr_t>(p), a)`
+
+Note that the above assumes the above assume a flat address space and that arithmetic on `uintptr_t` is
+equivalent to arithmetic on `char*`. Neither of which is required by the standard. It is entirely possible
+for an implementation to perform any transformation when casting `void*` to `uintptr_t` as long the 
+transformation can be reversed when casting back from `uintptr_t` to `void*`.
 
 Acknowledgments
 ====================
 
 This mini-proposal was originally part of \[[N3864](#N3864)\] but has been broken out as it is somewhat unrelated to the core
 purpose of that paper. Thank you to everyone who has been credited by N3864 for also helping with this proposal.
+
+Special thanks to everyone on the std-proposals forum for their valuable insight and feedback.
 
 References
 ==================
