@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "Testing 64 bit..."
+./test64
+
+echo "Testing 32 bit..."
+./test32

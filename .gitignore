@@ -19,3 +19,10 @@
 *.exe
 *.out
 *.app
+
+#Editor trash
+*.swp
+*~
+
+test/test32
+test/test64
