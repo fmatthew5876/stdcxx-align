@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#105;&#108;&#x74;&#111;:&#102;&#x6D;&#x61;&#116;&#116;&#104;&#x65;&#119;&#x35;&#x38;&#x37;&#x36;&#64;&#x67;&#109;&#x61;&#x69;&#108;&#46;&#x63;o&#109;">&#102;&#x6D;&#x61;&#116;&#116;&#104;&#x65;&#119;&#x35;&#x38;&#x37;&#x36;&#64;&#x67;&#109;&#x61;&#x69;&#108;&#46;&#x63;o&#109;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;i&#108;&#116;&#111;:&#x66;&#x6D;&#97;&#x74;&#116;&#104;&#x65;&#x77;&#53;&#x38;&#x37;&#x36;&#64;g&#x6D;a&#x69;&#108;&#46;&#x63;&#111;m">&#x66;&#x6D;&#97;&#x74;&#116;&#104;&#x65;&#x77;&#53;&#x38;&#x37;&#x36;&#64;g&#x6D;a&#x69;&#108;&#46;&#x63;&#111;m</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -103,7 +103,7 @@ either undefined or implementation defines results and each case is documented b
 
 <p>For all of the following, <code>std::is_integral&lt;integral&gt;::value == true</code></p>
 
-<pre><code>//Returns true if x is a multiple of a
+<pre><code>//Returns true if x == 0 or x is a multiple of a
 template&lt;typename integral&gt;
   constexpr bool is_aligned(integral x, size_t a) noexcept;
 
@@ -156,11 +156,11 @@ template&lt;typename integral&gt;
 template &lt;typename pointer&gt;
   bool is_aligned(pointer p, size_t a);
 
-//Returns the smallest pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+//Returns the smallest pointer t such that t &gt;= p and is_aligned(t, a) == true
 template &lt;typename pointer&gt;
   T align_up(pointer p, size_t a);
 
-//Returns the largest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+//Returns the largest pointer t such that t &lt;= p and is_aligned(t, a) == true
 template &lt;typename pointer&gt;
   T align_down(pointer p, size_t a);
 </code></pre>

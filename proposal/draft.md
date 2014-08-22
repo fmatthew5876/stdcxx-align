@@ -103,7 +103,7 @@ either undefined or implementation defines results and each case is documented b
 
 For all of the following, `std::is_integral<integral>::value == true`
 
-    //Returns true if x is a multiple of a
+    //Returns true if x == 0 or x is a multiple of a
     template<typename integral>
       constexpr bool is_aligned(integral x, size_t a) noexcept;
 
@@ -153,11 +153,11 @@ For all of the following `std::is_pointer<pointer>::value == true`
     template <typename pointer>
       bool is_aligned(pointer p, size_t a);
 
-    //Returns the smallest pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+    //Returns the smallest pointer t such that t >= p and is_aligned(t, a) == true
     template <typename pointer>
       T align_up(pointer p, size_t a);
 
-    //Returns the largest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+    //Returns the largest pointer t such that t <= p and is_aligned(t, a) == true
     template <typename pointer>
       T align_down(pointer p, size_t a);
 
