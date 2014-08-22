@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#x69;&#x6C;&#x74;&#x6F;:&#102;&#109;&#97;&#116;&#x74;&#x68;&#x65;&#x77;&#x35;&#56;&#55;&#54;&#64;&#x67;&#109;&#x61;i&#x6C;&#x2E;c&#111;&#x6D;">&#102;&#109;&#97;&#116;&#x74;&#x68;&#x65;&#x77;&#x35;&#56;&#55;&#54;&#64;&#x67;&#109;&#x61;i&#x6C;&#x2E;c&#111;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;&#x69;&#x6C;&#x74;o:&#102;&#x6D;&#x61;t&#x74;&#x68;&#101;&#x77;&#53;&#56;&#55;&#54;&#64;&#x67;&#x6D;&#97;&#x69;&#108;&#x2E;&#99;&#x6F;&#109;">&#102;&#x6D;&#x61;t&#x74;&#x68;&#101;&#x77;&#53;&#56;&#55;&#54;&#64;&#x67;&#x6D;&#97;&#x69;&#108;&#x2E;&#99;&#x6F;&#109;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -89,8 +89,8 @@ use case and should only be considered as a helper function for when that use ca
 <h1>Terminology</h1>
 
 <p>When we say a <em>memory block</em>, we mean a block of valid memory allocated to the application either on the stack, heap, or elsewhere.
-As is described in 5.7.5 [<a href="#IsoCpp">IsoCpp</a>], the valid set of addresses in this block span from the first address inside
-of the block up to and including 1 + the last address in the memory block.</p>
+As is described in 5.7.5 [<a href="#IsoCpp">IsoCpp</a>], the valid set of addresses in this block span from the <code>first address</code>
+of the block up to and including <code>1 + the last address</code>.</p>
 
 <h1>Technical Specification</h1>
 
@@ -118,7 +118,7 @@ template&lt;typename integral&gt;
 
 <h3>Shared Pre-Conditions</h3>
 
-<p>The result is undefined if:</p>
+<p>The result is undefined if any of:</p>
 
 <ul>
 <li><code>a == 0</code></li>
@@ -158,30 +158,30 @@ bool is_aligned(volatile void* p, size_t a);
 bool is_aligned(const volatile void* p, size_t a);
 
 //Returns nullptr if p == nullptr
-//Returns the pointer t such that t &gt;=p and is_aligned(t, a) == true
+//Returns the pointer t such that t &gt;= p and is_aligned(t, a) == true
 void* align_up(void* p, size_t a);
-void* align_up(const void* p, size_t a);
-void* align_up(volatile void* p, size_t a);
-void* align_up(const volatile void* p, size_t a);
+const void* align_up(const void* p, size_t a);
+volatile void* align_up(volatile void* p, size_t a);
+const volatile void* align_up(const volatile void* p, size_t a);
 
 //Returns nullptr if p == nullptr
-//Returns the pointer t such that t &gt;=p and is_aligned(t, a) == true
+//Returns the pointer t such that t &gt;= p and is_aligned(t, a) == true
 void* align_down(void* p, size_t a);
-void* align_down(const void* p, size_t a);
-void* align_down(volatile void* p, size_t a);
-void* align_down(const volatile void* p, size_t a);
+const void* align_down(const void* p, size_t a);
+volatile void* align_down(volatile void* p, size_t a);
+const volatile void* align_down(const volatile void* p, size_t a);
 </code></pre>
 
 <h3>Shared Pre-Conditions</h3>
 
-<p>The result is undefined if:</p>
+<p>The result is undefined if any of:</p>
 
 <ul>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
 </ul>
 
-<p>The result is implementation defined if:</p>
+<p>The result is implementation defined if any of:</p>
 
 <ul>
 <li><code>a &gt;= PTRDIFF_MAX</code></li>
@@ -214,35 +214,22 @@ transformation can be reversed when casting back from <code>uintptr_t</code> to 
 
 <h2>Typed pointer alignment adjustment (T*)</h2>
 
-<p>The following functions adjust the alignment of a typed pointer.</p>
+<p>For all of the following <code>std::is_pointer&lt;T&gt;::value == true</code></p>
 
 <pre><code>//Returns nullptr if p == nullptr
-//Returns the pointer t such that t &gt;=p and is_aligned(t, a) == true
+//Returns the pointer t such that t &gt;= p and is_aligned(t, a) == true
 template &lt;typename T&gt;
-  T* align_up(T* p, size_t a)
+  T align_up(T p, size_t a)
 
 //Returns nullptr if p == nullptr
-//Returns the pointer t such that t &lt;=p and is_aligned(t, a) == true
+//Returns the pointer t such that t &lt;= p and is_aligned(t, a) == true
 template &lt;typename T&gt;
-  T* align_down(T* p, size_t a)
-</code></pre>
-
-<p>The following specializations are also required. These all call the overloaded <code>align_[up|down](void*, size_t)</code>.</p>
-
-<pre><code>template &lt;&gt; void* align_up&lt;void*&gt;(void* p, size_t a) { align_up(p, a); }
-template &lt;&gt; const void* align_up&lt;const void*&gt;(const void* p, size_t a) { align_up(p, a); }
-template &lt;&gt; volatile void* align_up&lt;volatile void*&gt;(volatile void* p, size_t a) { align_up(p, a); }
-template &lt;&gt; const volatile void* align_up&lt;const volatile void*&gt;(const volatile void* p, size_t a) { align_up(p, a); }
-
-template &lt;&gt; void* align_down&lt;void*&gt;(void* p, size_t a) { align_down(p, a); }
-template &lt;&gt; const void* align_down&lt;const void*&gt;(const void* p, size_t a) { align_down(p, a); }
-template &lt;&gt; volatile void* align_down&lt;volatile void*&gt;(volatile void* p, size_t a) { align_down(p, a); }
-template &lt;&gt; const volatile void* align_down&lt;const volatile void*&gt;(const volatile void* p, size_t a) { align_down(p, a); }
+  T align_down(T p, size_t a)
 </code></pre>
 
 <h3>Shared Pre-conditions</h3>
 
-<p>The results are undefined if:</p>
+<p>The results are undefined if any of:</p>
 
 <ul>
 <li><code>a &lt; alignof(T)</code>,</li>
@@ -250,7 +237,7 @@ template &lt;&gt; const volatile void* align_down&lt;const volatile void*&gt;(co
 <li><code>a</code> is not a power of 2</li>
 </ul>
 
-<p>The results are implementation defined if:</p>
+<p>The results are implementation defined if any of:</p>
 
 <ul>
 <li><code>a &gt;= PTRDIFF_MAX</code></li>
@@ -260,28 +247,36 @@ template &lt;&gt; const volatile void* align_down&lt;const volatile void*&gt;(co
 
 <h3>Example Implementations</h3>
 
-<pre><code>template &lt;typename T&gt;
-  T* align_up(T* p, size_t a) {
-    return reinterpret_cast&lt;T*&gt;(align_up&lt;void*&gt;(p, a)); 
+<pre><code>//__carry_cv&lt;T,V&gt;::type is V with the same cv qualifiers as T
+template &lt;typename T, typename V&gt; using __carry_cv =
+conditional&lt;is_const&lt;T&gt;::value,
+conditional&lt;is_volatile&lt;T&gt;::value,const volatile V,const V&gt;,
+conditional&lt;is_volatile&lt;T&gt;::value,volatile V, V&gt;&gt;;
+
+template &lt;typename T&gt;
+  T align_up(T p, size_t a) {
+    return reinterpret_cast&lt;T*&gt;(align_up(reinterpret_cast&lt;typename __carry_cv&lt;typename std::remove_pointer&lt;T&gt;::type,void&gt;::type*&gt;(p), a));
   }
 
 template &lt;typename T&gt;
   T* align_down(T* p, size_t a) {
-    return reinterpret_cast&lt;T*&gt;(align_down&lt;void*&gt;(p, a)); 
+    return reinterpret_cast&lt;T*&gt;(align_up(reinterpret_cast&lt;typename __carry_cv&lt;typename std::remove_pointer&lt;T&gt;::type,void&gt;::type*&gt;(p), a));
   }
 </code></pre>
 
 <h2>Alignment casts (U*) -> (T*)</h2>
 
+<p>For all of the following, <code>std::is_pointer&lt;T&gt;::value == true</code></p>
+
 <pre><code>//Returns nullptr if p == nullptr
 //Returns the smallest pointer t of type T* where reinterpret_cast&lt;void*&gt;(t) &gt; reinterpret_cast&lt;void*&gt;p and t is aligned to a
 template &lt;typename T, typename U&gt;
-  T* align_up_cast&lt;T*&gt;(U* p, size_t a=alignof(T));
+  T align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type))
 
 //Returns nullptr if p == nullptr
 //Returns the smallest pointer t of type T* where reinterpret_cast&lt;void*&gt;(t) &gt; reinterpret_cast&lt;void*&gt;p and t is aligned to a
 template &lt;typename T, typename U&gt;
-  T* align_down&lt;T*&gt;(U* p, size_t a=alignof(T));
+  T align_down(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type))
 </code></pre>
 
 <p>These functions are designed to become the standard way of doing a <code>reinterpret_cast</code> and an alignment adjustment all in one operation which
@@ -289,7 +284,7 @@ can optionally be checked by the implementation for correctness.</p>
 
 <h3>Shared Pre-conditions</h3>
 
-<p>The results are undefined if:</p>
+<p>The results are undefined if any of:</p>
 
 <ul>
 <li><code>a &lt; alignof(T)</code></li>
@@ -297,7 +292,7 @@ can optionally be checked by the implementation for correctness.</p>
 <li><code>a</code> is not a power of 2</li>
 </ul>
 
-<p>The results are implementation defined if:</p>
+<p>The results are implementation defined if any of:</p>
 
 <ul>
 <li><code>a &gt;= PTRDIFF_MAX</code></li>
@@ -307,15 +302,15 @@ can optionally be checked by the implementation for correctness.</p>
 
 <h3>Example implementation</h3>
 
-<pre><code>template &lt;typename U, typename T=U&gt;
-  T* align_up_cast&lt;T*&gt;(U* p, size_t a=alignof(T)) {
-    return reinterpret_cast&lt;T*&gt;(align_up(p, a));
-}
+<pre><code>template &lt;typename T, typename U&gt;
+  inline T align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type)) {
+    return align_up(reinterpret_cast&lt;T&gt;(p), a);
+  }
 
-template &lt;typename U, typename T=U&gt;
-  T* align_down&lt;T*&gt;(U* p, size_t a=alignof(T)) {
-    return reinterpret_cast&lt;T*&gt;(align_up(p, a));
-}
+template &lt;typename T, typename U&gt;
+  inline T align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type)) {
+    return align_down(reinterpret_cast&lt;T&gt;(p), a);
+  }
 </code></pre>
 
 <h3>Compiler cast alignment warnings (-Wcast-align)</h3>
