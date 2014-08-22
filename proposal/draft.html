@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="ma&#x69;&#108;&#x74;&#111;:&#x66;&#109;&#x61;&#x74;&#116;&#104;&#x65;&#x77;&#x35;&#x38;&#55;&#x36;&#64;&#x67;&#109;&#97;&#105;&#108;&#x2E;&#x63;&#111;&#x6D;">&#x66;&#109;&#x61;&#x74;&#116;&#104;&#x65;&#x77;&#x35;&#x38;&#55;&#x36;&#64;&#x67;&#109;&#97;&#105;&#108;&#x2E;&#x63;&#111;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;a&#105;&#108;t&#111;:&#102;&#109;&#x61;&#x74;&#116;&#x68;&#101;&#x77;&#53;&#56;&#55;&#x36;&#64;&#x67;&#109;&#97;&#x69;&#x6C;&#x2E;&#99;&#111;&#x6D;">&#102;&#109;&#x61;&#x74;&#116;&#x68;&#101;&#x77;&#53;&#56;&#55;&#x36;&#64;&#x67;&#109;&#97;&#x69;&#x6C;&#x2E;&#99;&#111;&#x6D;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -156,11 +156,11 @@ template&lt;typename integral&gt;
 template &lt;typename pointer&gt;
   bool is_aligned(pointer p, size_t a);
 
-//Returns the smallest pointer t such that t &gt;= p and is_aligned(t, a) == true
+//Returns the smallest pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
 template &lt;typename pointer&gt;
   T align_up(pointer p, size_t a);
 
-//Returns the largest pointer t such that t &lt;= p and is_aligned(t, a) == true
+//Returns the largest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
 template &lt;typename pointer&gt;
   T align_down(pointer p, size_t a);
 </code></pre>
@@ -173,6 +173,7 @@ template &lt;typename pointer&gt;
 <li><code>!std::is_same&lt;typename std::remove_cv&lt;T&gt;::type,void&gt; &amp;&amp; a &lt; alignof(T)</code>,</li>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
+<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> (note: this would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> --end note).</li>
 </ul>
 
 <p>The results are implementation defined if any of:</p>
@@ -237,6 +238,7 @@ can optionally be checked by the implementation for correctness.</p>
 <li><code>a &lt; alignof(T)</code></li>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
+<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> (note: this would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> --end note).</li>
 </ul>
 
 <p>The results are implementation defined if any of:</p>
