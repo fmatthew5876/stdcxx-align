@@ -107,11 +107,11 @@ For all of the following, `std::is_integral<integral>::value == true`
     template<typename integral>
       constexpr bool is_aligned(integral x, size_t a) noexcept;
 
-    //Returns n, where n is the smallest number >= x and is_aligned(n, a)
+    //Returns n, where n is the least number >= x and is_aligned(n, a)
     template<typename integral>
       constexpr integral align_up(integral x, size_t a) noexcept;
 
-    //Returns n, where n is the largest number <= x and is_aligned(n, a)
+    //Returns n, where n is the greatest number <= x and is_aligned(n, a)
     template<typename integral>
       constexpr integral align_down(integral x, size_t a) noexcept;
 
@@ -153,11 +153,11 @@ For all of the following `std::is_pointer<pointer>::value == true`
     template <typename pointer>
       bool is_aligned(pointer p, size_t a);
 
-    //Returns the smallest pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+    //Returns the least pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <typename pointer>
       T align_up(pointer p, size_t a);
 
-    //Returns the largest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+    //Returns the greatest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <typename pointer>
       T align_down(pointer p, size_t a);
 
@@ -204,11 +204,11 @@ transformation can be reversed when casting back from `uintptr_t` to `void*`.
 
 For all of the following, `std::is_pointer<pointer>::value == true`
 
-    //Returns the smallest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
+    //Returns the least pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
     template <typename pointer, typename U>
       pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
-    //Returns the largest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
+    //Returns the greatest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
     template <typename pointer, typename U>
       pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
