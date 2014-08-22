@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="m&#x61;i&#108;to:&#x66;&#109;&#97;&#x74;&#x74;&#104;&#101;&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#x61;&#x69;l&#46;&#x63;&#111;m">&#x66;&#109;&#97;&#x74;&#x74;&#104;&#101;&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#x61;&#x69;l&#46;&#x63;&#111;m</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;&#x69;&#108;t&#111;:&#x66;&#x6D;&#97;&#116;&#x74;&#x68;e&#119;&#x35;&#x38;&#x37;&#54;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;&#x6D;">&#x66;&#x6D;&#97;&#116;&#x74;&#x68;e&#119;&#x35;&#x38;&#x37;&#54;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;&#x6D;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -173,7 +173,7 @@ template &lt;typename pointer&gt;
 <p>The results are undefined if any of:</p>
 
 <ul>
-<li><code>a &lt; alignof(T)</code>,</li>
+<li><code>!std::is_same&lt;typename std::remove_cv&lt;T&gt;::type,void&gt; &amp;&amp; a &lt; alignof(T)</code>,</li>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
 </ul>
@@ -193,12 +193,12 @@ template &lt;typename pointer&gt;
     return is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p));
   }
 
-template &lt;typename T&gt;
+template &lt;typename pointer&gt;
   pointer align_up(pointer p, size_t a) {
     return reinterpret_cast&lt;pointer&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p)));
   }
 
-template &lt;typename T&gt;
+template &lt;typename pointer&gt;
   pointer align_down(pointer p, size_t a) {
     return reinterpret_cast&lt;pointer&gt;(align_down(reinterpret_cast&lt;uintptr_t&gt;(p)));
   }

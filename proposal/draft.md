@@ -168,7 +168,7 @@ For all of the following `std::is_pointer<pointer>::value == true`
 
 The results are undefined if any of:
 
-* `a < alignof(T)`,
+* `!std::is_same<typename std::remove_cv<T>::type,void> && a < alignof(T)`,
 * `a == 0`
 * `a` is not a power of 2
 
@@ -185,12 +185,12 @@ The results are implementation defined if any of:
         return is_aligned(reinterpret_cast<uintptr_t>(p));
       }
 
-    template <typename T>
+    template <typename pointer>
       pointer align_up(pointer p, size_t a) {
         return reinterpret_cast<pointer>(align_up(reinterpret_cast<uintptr_t>(p)));
       }
 
-    template <typename T>
+    template <typename pointer>
       pointer align_down(pointer p, size_t a) {
         return reinterpret_cast<pointer>(align_down(reinterpret_cast<uintptr_t>(p)));
       }
