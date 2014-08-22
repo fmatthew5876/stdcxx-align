@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#x6D;a&#105;&#108;t&#111;:&#102;&#109;&#x61;&#x74;&#116;&#x68;&#101;&#x77;&#53;&#56;&#55;&#x36;&#64;&#x67;&#109;&#97;&#x69;&#x6C;&#x2E;&#99;&#111;&#x6D;">&#102;&#109;&#x61;&#x74;&#116;&#x68;&#101;&#x77;&#53;&#56;&#55;&#x36;&#64;&#x67;&#109;&#97;&#x69;&#x6C;&#x2E;&#99;&#111;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#105;&#108;&#x74;&#111;:&#x66;&#109;&#97;&#x74;&#116;&#x68;&#x65;&#x77;&#x35;&#56;&#x37;6&#64;&#x67;&#109;&#x61;&#105;&#x6C;&#46;c&#x6F;&#x6D;">&#x66;&#109;&#97;&#x74;&#116;&#x68;&#x65;&#x77;&#x35;&#56;&#x37;6&#64;&#x67;&#109;&#x61;&#105;&#x6C;&#46;c&#x6F;&#x6D;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -107,11 +107,11 @@ either undefined or implementation defines results and each case is documented b
 template&lt;typename integral&gt;
   constexpr bool is_aligned(integral x, size_t a) noexcept;
 
-//Returns n, where n is the smallest number &gt;= x and is_aligned(n, a)
+//Returns n, where n is the least number &gt;= x and is_aligned(n, a)
 template&lt;typename integral&gt;
   constexpr integral align_up(integral x, size_t a) noexcept;
 
-//Returns n, where n is the largest number &lt;= x and is_aligned(n, a)
+//Returns n, where n is the greatest number &lt;= x and is_aligned(n, a)
 template&lt;typename integral&gt;
   constexpr integral align_down(integral x, size_t a) noexcept;
 </code></pre>
@@ -156,11 +156,11 @@ template&lt;typename integral&gt;
 template &lt;typename pointer&gt;
   bool is_aligned(pointer p, size_t a);
 
-//Returns the smallest pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+//Returns the least pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
 template &lt;typename pointer&gt;
   T align_up(pointer p, size_t a);
 
-//Returns the largest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+//Returns the greatest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
 template &lt;typename pointer&gt;
   T align_down(pointer p, size_t a);
 </code></pre>
@@ -212,11 +212,11 @@ transformation can be reversed when casting back from <code>uintptr_t</code> to 
 
 <p>For all of the following, <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
-<pre><code>//Returns the smallest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
+<pre><code>//Returns the least pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
 template &lt;typename pointer, typename U&gt;
   pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
 
-//Returns the largest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
+//Returns the greatest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
 template &lt;typename pointer, typename U&gt;
   pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
 </code></pre>
