@@ -149,18 +149,15 @@ NOTE: Implementations should support all extended integral types.
 
 For all of the following `std::is_pointer<pointer>::value == true`
 
-    //Returns false if p == nullptr
-    //Returns true if p is aligned to a
+    //Returns true if p is aligned to a, or false if p == nullptr
     template <typename pointer>
       bool is_aligned(pointer p, size_t a);
 
-    //Returns nullptr if p == nullptr
-    //Returns the pointer t such that t >= p and is_aligned(t, a) == true
+    //Returns the smallest pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <typename pointer>
       T align_up(pointer p, size_t a);
 
-    //Returns nullptr if p == nullptr
-    //Returns the pointer t such that t <= p and is_aligned(t, a) == true
+    //Returns the largest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <typename pointer>
       T align_down(pointer p, size_t a);
 
@@ -206,13 +203,11 @@ transformation can be reversed when casting back from `uintptr_t` to `void*`.
 
 For all of the following, `std::is_pointer<pointer>::value == true`
 
-    //Returns nullptr if p == nullptr
     //Returns the smallest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
     template <typename pointer, typename U>
       pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
-    //Returns nullptr if p == nullptr
-    //Returns the smallest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
+    //Returns the largest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
     template <typename pointer, typename U>
       pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
@@ -220,6 +215,11 @@ These functions are designed to become the standard way of doing a `reinterpret_
 can optionally be checked by the implementation for correctness.
 
 ### Shared Pre-conditions
+
+Returns `nullptr` if:
+
+* `p == nullptr`
+
 
 The results are undefined if any of:
 

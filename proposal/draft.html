@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;&#x69;&#108;t&#111;:&#x66;&#x6D;&#97;&#116;&#x74;&#x68;e&#119;&#x35;&#x38;&#x37;&#54;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;&#x6D;">&#x66;&#x6D;&#97;&#116;&#x74;&#x68;e&#119;&#x35;&#x38;&#x37;&#54;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;&#105;&#x6C;&#x74;&#111;:&#102;&#109;&#97;&#116;th&#101;&#119;&#x35;&#56;7&#54;&#64;&#103;&#109;&#x61;&#105;&#x6C;&#x2E;&#x63;o&#x6D;">&#102;&#109;&#97;&#116;th&#101;&#119;&#x35;&#56;7&#54;&#64;&#103;&#109;&#x61;&#105;&#x6C;&#x2E;&#x63;o&#x6D;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -152,18 +152,15 @@ template&lt;typename integral&gt;
 
 <p>For all of the following <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
-<pre><code>//Returns false if p == nullptr
-//Returns true if p is aligned to a
+<pre><code>//Returns true if p is aligned to a, or false if p == nullptr
 template &lt;typename pointer&gt;
   bool is_aligned(pointer p, size_t a);
 
-//Returns nullptr if p == nullptr
-//Returns the pointer t such that t &gt;= p and is_aligned(t, a) == true
+//Returns the smallest pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
 template &lt;typename pointer&gt;
   T align_up(pointer p, size_t a);
 
-//Returns nullptr if p == nullptr
-//Returns the pointer t such that t &lt;= p and is_aligned(t, a) == true
+//Returns the largest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
 template &lt;typename pointer&gt;
   T align_down(pointer p, size_t a);
 </code></pre>
@@ -214,13 +211,11 @@ transformation can be reversed when casting back from <code>uintptr_t</code> to 
 
 <p>For all of the following, <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
-<pre><code>//Returns nullptr if p == nullptr
-//Returns the smallest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
+<pre><code>//Returns the smallest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
 template &lt;typename pointer, typename U&gt;
   pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
 
-//Returns nullptr if p == nullptr
-//Returns the smallest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
+//Returns the largest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
 template &lt;typename pointer, typename U&gt;
   pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
 </code></pre>
@@ -229,6 +224,12 @@ template &lt;typename pointer, typename U&gt;
 can optionally be checked by the implementation for correctness.</p>
 
 <h3>Shared Pre-conditions</h3>
+
+<p>Returns <code>nullptr</code> if:</p>
+
+<ul>
+<li><code>p == nullptr</code></li>
+</ul>
 
 <p>The results are undefined if any of:</p>
 
