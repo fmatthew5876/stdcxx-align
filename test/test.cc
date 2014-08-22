@@ -56,7 +56,6 @@ static void test() {
 
 int main() {
   test<int8_t>();
-#if 0
   test<int16_t>();
   test<int32_t>();
   test<int64_t>();
@@ -64,7 +63,6 @@ int main() {
   test<uint16_t>();
   test<uint32_t>();
   test<uint64_t>();
-#endif
 
   return 0;
 }
