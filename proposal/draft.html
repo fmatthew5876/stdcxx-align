@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#x69;l&#x74;&#111;:&#102;&#x6D;&#97;&#x74;&#116;&#x68;&#101;&#x77;&#53;8&#55;&#54;&#64;&#103;&#109;&#97;&#x69;&#108;&#x2E;&#x63;&#111;&#x6D;">&#102;&#x6D;&#97;&#x74;&#116;&#x68;&#101;&#x77;&#53;8&#55;&#54;&#64;&#103;&#109;&#97;&#x69;&#108;&#x2E;&#x63;&#111;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="m&#x61;i&#108;to:&#x66;&#109;&#97;&#x74;&#x74;&#104;&#101;&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#x61;&#x69;l&#46;&#x63;&#111;m">&#x66;&#109;&#97;&#x74;&#x74;&#104;&#101;&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#x61;&#x69;l&#46;&#x63;&#111;m</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -99,7 +99,7 @@ entirely using templated and overloaded free functions.
 Each pre-condition has
 either undefined or implementation defines results and each case is documented below.</p>
 
-<h2>Alignment math (int)</h2>
+<h2>Integral alignment math</h2>
 
 <p>For all of the following, <code>std::is_integral&lt;integral&gt;::value == true</code></p>
 
@@ -148,93 +148,24 @@ template&lt;typename integral&gt;
 
 <p>NOTE: Implementations should support all extended integral types.</p>
 
-<h2>Special handling for nullptr_t (nullptr)</h2>
+<h2>Pointer alignment adjustment</h2>
 
-<p>We provide explicit overloads for <code>nullptr_t</code>. This is because without this overload,
-<code>align_up(nullptr, a)</code> is ambiguous (similarly with <code>is_aligned</code> and <code>align_down</code>).</p>
-
-<pre><code>bool is_aligned(nullptr_t, size_t) { return false; }
-nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
-nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
-</code></pre>
-
-<h2>Untyped pointer alignment adjustment (void*)</h2>
+<p>For all of the following <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
 <pre><code>//Returns false if p == nullptr
-//Returns true if p is aligned by a
-bool is_aligned(void* p, size_t a);
-bool is_aligned(const void* p, size_t a);
-bool is_aligned(volatile void* p, size_t a);
-bool is_aligned(const volatile void* p, size_t a);
+//Returns true if p is aligned to a
+template &lt;typename pointer&gt;
+  bool is_aligned(pointer p, size_t a);
 
 //Returns nullptr if p == nullptr
 //Returns the pointer t such that t &gt;= p and is_aligned(t, a) == true
-void* align_up(void* p, size_t a);
-const void* align_up(const void* p, size_t a);
-volatile void* align_up(volatile void* p, size_t a);
-const volatile void* align_up(const volatile void* p, size_t a);
-
-//Returns nullptr if p == nullptr
-//Returns the pointer t such that t &gt;= p and is_aligned(t, a) == true
-void* align_down(void* p, size_t a);
-const void* align_down(const void* p, size_t a);
-volatile void* align_down(volatile void* p, size_t a);
-const volatile void* align_down(const volatile void* p, size_t a);
-</code></pre>
-
-<h3>Shared Pre-Conditions</h3>
-
-<p>The result is undefined if any of:</p>
-
-<ul>
-<li><code>a == 0</code></li>
-<li><code>a</code> is not a power of 2</li>
-</ul>
-
-<p>The result is implementation defined if any of:</p>
-
-<ul>
-<li><code>a &gt;= PTRDIFF_MAX</code></li>
-<li><code>p</code> does not point to an existing <em>memory block</em></li>
-<li>The result does not reside within the same <em>memory block</em> as <code>p</code></li>
-</ul>
-
-<h3>Example implementations</h3>
-
-<p>For most modern systems, the pointer variants can be trivially implemented by casting to and from <code>uintptr_t</code></p>
-
-<pre><code>bool is_aligned(void* p, size_t a) {
-  return is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p));
-}
-
-void* align_up(void* p, size_t a) {
-  return reinterpret_cast&lt;void*&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p)));
-}
-
-void* align_down(void* p, size_t a) {
-  return reinterpret_cast&lt;void*&gt;(align_down(reinterpret_cast&lt;uintptr_t&gt;(p)));
-}
-</code></pre>
-
-<p>Note that the above assumes the above assume a flat address space and that arithmetic on <code>uintptr_t</code> is
-equivalent to arithmetic on <code>char*</code>. While these conditions prevail for the majority of modern platforms, 
-neither of which is required by the standard. It is entirely possible
-for an implementation to perform any transformation when casting <code>void*</code> to <code>uintptr_t</code> as long the 
-transformation can be reversed when casting back from <code>uintptr_t</code> to <code>void*</code>.</p>
-
-<h2>Typed pointer alignment adjustment (T*)</h2>
-
-<p>For all of the following <code>std::is_pointer&lt;T&gt;::value == true</code></p>
-
-<pre><code>//Returns nullptr if p == nullptr
-//Returns the pointer t such that t &gt;= p and is_aligned(t, a) == true
-template &lt;typename T&gt;
-  T align_up(T p, size_t a)
+template &lt;typename pointer&gt;
+  T align_up(pointer p, size_t a);
 
 //Returns nullptr if p == nullptr
 //Returns the pointer t such that t &lt;= p and is_aligned(t, a) == true
-template &lt;typename T&gt;
-  T align_down(T p, size_t a)
+template &lt;typename pointer&gt;
+  T align_down(pointer p, size_t a);
 </code></pre>
 
 <h3>Shared Pre-conditions</h3>
@@ -257,36 +188,41 @@ template &lt;typename T&gt;
 
 <h3>Example Implementations</h3>
 
-<pre><code>//__carry_cv&lt;T,V&gt;::type is V with the same cv qualifiers as T
-template &lt;typename T, typename V&gt; using __carry_cv =
-conditional&lt;is_const&lt;T&gt;::value,
-conditional&lt;is_volatile&lt;T&gt;::value,const volatile V,const V&gt;,
-conditional&lt;is_volatile&lt;T&gt;::value,volatile V, V&gt;&gt;;
-
-template &lt;typename T&gt;
-  T align_up(T p, size_t a) {
-    return reinterpret_cast&lt;T*&gt;(align_up(reinterpret_cast&lt;typename __carry_cv&lt;typename std::remove_pointer&lt;T&gt;::type,void&gt;::type*&gt;(p), a));
+<pre><code>template &lt;typename pointer&gt;
+  bool is_aligned(pointer p, size_t a) {
+    return is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p));
   }
 
 template &lt;typename T&gt;
-  T* align_down(T* p, size_t a) {
-    return reinterpret_cast&lt;T*&gt;(align_up(reinterpret_cast&lt;typename __carry_cv&lt;typename std::remove_pointer&lt;T&gt;::type,void&gt;::type*&gt;(p), a));
+  pointer align_up(pointer p, size_t a) {
+    return reinterpret_cast&lt;pointer&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p)));
+  }
+
+template &lt;typename T&gt;
+  pointer align_down(pointer p, size_t a) {
+    return reinterpret_cast&lt;pointer&gt;(align_down(reinterpret_cast&lt;uintptr_t&gt;(p)));
   }
 </code></pre>
 
-<h2>Alignment casts (U*) -> (T*)</h2>
+<p>Note that the above assumes the above assume a flat address space and that arithmetic on <code>uintptr_t</code> is
+equivalent to arithmetic on <code>char*</code>. While these conditions prevail for the majority of modern platforms, 
+neither of which is required by the standard. It is entirely possible
+for an implementation to perform any transformation when casting <code>void*</code> to <code>uintptr_t</code> as long the 
+transformation can be reversed when casting back from <code>uintptr_t</code> to <code>void*</code>.</p>
 
-<p>For all of the following, <code>std::is_pointer&lt;T&gt;::value == true</code></p>
+<h2>Alignment casts</h2>
+
+<p>For all of the following, <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
 <pre><code>//Returns nullptr if p == nullptr
-//Returns the smallest pointer t of type T* where reinterpret_cast&lt;void*&gt;(t) &gt; reinterpret_cast&lt;void*&gt;p and t is aligned to a
-template &lt;typename T, typename U&gt;
-  T align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type))
+//Returns the smallest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
+template &lt;typename pointer, typename U&gt;
+  pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
 
 //Returns nullptr if p == nullptr
-//Returns the smallest pointer t of type T* where reinterpret_cast&lt;void*&gt;(t) &gt; reinterpret_cast&lt;void*&gt;p and t is aligned to a
-template &lt;typename T, typename U&gt;
-  T align_down(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type))
+//Returns the smallest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
+template &lt;typename pointer, typename U&gt;
+  pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
 </code></pre>
 
 <p>These functions are designed to become the standard way of doing a <code>reinterpret_cast</code> and an alignment adjustment all in one operation which
@@ -312,14 +248,14 @@ can optionally be checked by the implementation for correctness.</p>
 
 <h3>Example implementation</h3>
 
-<pre><code>template &lt;typename T, typename U&gt;
-  inline T align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type)) {
-    return align_up(reinterpret_cast&lt;T&gt;(p), a);
+<pre><code>template &lt;typename pointer, typename U&gt;
+  inline pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type)) {
+    return reinterpret_cast&lt;pointer&gt;(align_up(p, a));
   }
 
-template &lt;typename T, typename U&gt;
-  inline T align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;T&gt;::type)) {
-    return align_down(reinterpret_cast&lt;T&gt;(p), a);
+template &lt;typename pointer, typename U&gt;
+  inline pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type)) {
+    return reinterpret_cast&lt;pointer&gt;(align_down(p), a));
   }
 </code></pre>
 
