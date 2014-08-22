@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;i&#x6C;&#x74;&#111;:&#x66;&#109;&#x61;&#116;t&#x68;e&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#97;&#105;&#x6C;&#46;&#99;&#111;&#109;">&#x66;&#109;&#x61;&#116;t&#x68;e&#119;&#53;&#x38;&#x37;&#54;&#64;&#103;&#x6D;&#97;&#105;&#x6C;&#46;&#99;&#111;&#109;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;i&#108;&#x74;&#x6F;:&#x66;&#x6D;&#x61;&#116;t&#x68;&#x65;&#x77;&#53;&#x38;&#x37;&#x36;&#64;g&#x6D;&#97;&#x69;&#108;&#x2E;&#99;&#111;&#109;">&#x66;&#x6D;&#x61;&#116;t&#x68;&#x65;&#x77;&#53;&#x38;&#x37;&#x36;&#64;g&#x6D;&#97;&#x69;&#108;&#x2E;&#99;&#111;&#109;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -16,7 +16,8 @@
 <h1>Introduction</h1>
 
 <p>This proposal adds support for a few mnemonics which are useful for
-low level code which has to manually align blocks of memory.</p>
+low level code which has to manually align blocks of memory. It also adds 2
+new alignment cast, which allow safe alignment conversions between typed pointers.</p>
 
 <h1>Impact on the standard</h1>
 
@@ -98,89 +99,245 @@ wider integral types. All of the functions in this proposal
 accept signed integers but have undefined results for negative numbers.
 The example implementations depend on a 2's complement representation but implementability of this proposal does not.</p>
 
-<h4>List of Functions</h4>
+<h2>Alignment math (int)</h2>
 
-<p>For all of the following functions, the result is undefined if <code>x &lt; 0</code> or <code>align</code> is not a power of 2.</p>
+<p>The integral signatures:</p>
 
-<pre><code>template &lt;class integral&gt;
-constexpr bool is_aligned(integral x, size_t align) noexcept;
+<pre><code>//Returns true if x is a multiple of a
+template&lt;typename integral&gt;
+  constexpr bool is_aligned(integral x, size_t a) noexcept;
+
+//Returns n, where n is the smallest number &gt;= x and is_aligned(n, a)
+template&lt;typename integral&gt;
+  constexpr integral align_up(integral x, size_t a) noexcept;
+
+//Returns n, where n is the largest number &lt;= x and is_aligned(n, a)
+template&lt;typename integral&gt;
+  constexpr integral align_down(integral x, size_t a) noexcept;
 </code></pre>
 
+<h3>Specification Details</h3>
+
 <ul>
-<li><em>Returns:</em> <code>true</code> if <code>x</code> is a multiple of <code>align</code>.</li>
+<li>All signed and unsigned integral types shall be supported.</li>
+<li>Implementations should support all builtin extended integral types.</li>
 </ul>
 
-<!-- -->
+<h3>Shared Pre-Conditions</h3>
 
-<pre><code>bool is_aligned(void* p, size_t align) noexcept;
+<ul>
+<li><code>a</code> must be a power of 2, otherwise the result is undefined.</li>
+<li>if <code>x &lt; 0</code>, the result is undefined.</li>
+</ul>
+
+<h3>Example Implementations</h3>
+
+<p>All of these implementations are trivial, efficient, and portable.</p>
+
+<pre><code>&lt;template &lt;typename integral&gt;
+  constexpr bool is_aligned(integral x, size_t a) noexcept {
+    return (x &amp; (integral(a) - 1)) == 0
+  }
+
+&lt;template &lt;typename integral&gt;
+  constexpr integral align_up(integral x, size_t a) noexcept {
+    return (x + (integral(a) - 1)) &amp; -integral(a);
+  }
+
+&lt;template &lt;typename integral&gt;
+  constexpr integral align_down(integral x, size_t a) noexcept {
+    return x &amp; -integral(a);
+  }
 </code></pre>
 
-<ul>
-<li><em>Returns:</em> <code>true</code> if <code>p</code> is aligned by <code>align</code>.</li>
-</ul>
+<h2>Untyped pointer alignment adjustment (void*)</h2>
 
-<!-- -->
+<p>The <code>void*</code> overloads:</p>
 
-<pre><code>template &lt;class integral&gt;
-constexpr integral align_up(integral x, size_t align) noexcept;
+<pre><code>bool is_aligned(void* p, size_t a);
+bool is_aligned(const void* p, size_t a);
+bool is_aligned(volatile void* p, size_t a);
+bool is_aligned(const volatile void* p, size_t a);
+
+void* align_up(void* p, size_t a);
+void* align_up(const void* p, size_t a);
+void* align_up(volatile void* p, size_t a);
+void* align_up(const volatile void* p, size_t a);
+
+void* align_down(void* p, size_t a);
+void* align_down(const void* p, size_t a);
+void* align_down(volatile void* p, size_t a);
+void* align_down(const volatile void* p, size_t a);
 </code></pre>
 
-<ul>
-<li><em>Returns:</em> The unique value <code>n</code> such that <code>is_aligned(n, align) &amp;&amp; n &gt;= x</code>.</li>
-</ul>
-
-<!-- -->
-
-<pre><code>void* align_up(void* p, size_t align) noexcept;
-</code></pre>
+<h3>Shared Pre-Conditions</h3>
 
 <ul>
-<li><em>Returns:</em> The unique value <code>np</code> such that <code>is_aligned(np, align) &amp;&amp; np &gt;= x</code>.</li>
-</ul>
-
-<!-- -->
-
-<pre><code>template &lt;class integral&gt;
-constexpr integral align_down(integral x, size_t align) noexcept;
-</code></pre>
-
+<li>If <code>p == nullptr</code>, the result is undefined
 <ul>
-<li><em>Returns:</em> The unique value <code>n</code> such that <code>is_aligned(n, align) &amp;&amp; n &lt;= x</code>.</li>
-</ul>
-
-<!-- -->
-
-<pre><code>void* align_down(void* val, size_t align) noexcept;
-</code></pre>
-
+<li>Alternative: <code>is_aligned(nullptr) == false</code></li>
+<li>Alternative: <code>align_up(nullptr) == align_down(nullptr) == nullptr</code>
 <ul>
-<li><em>Returns:</em> The unique value <code>np</code> such that <code>is_aligned(np, align) &amp;&amp; np &lt;= x</code>.</li>
+<li>The alternatives may burden the efficiency of the implementation</li>
+</ul></li>
+</ul></li>
+<li>Note: a <em>memory block</em> as stated below defines a block of valid memory
+which extends from the first memory location in the block up until 1 after
+the last memory location as described in 5.7.5 of the standard [<a href="#IsoCpp">IsoCpp</a>].</li>
+<li>If <code>p</code> does not point to a valid memory block, the result is implementation defined.</li>
+<li>If <code>align_up(p, a)</code> or <code>align_down(p, a)</code> produces a resulting pointer which does
+not point to p's memory block, the result is implementation defined.</li>
+<li>If <code>a &gt; PTRDIFF_MAX</code>, the result is implementation defined.</li>
 </ul>
 
-<p>The result of <code>align_up</code> or <code>align_down</code> with parameters of object pointer type is undefined if there does not exist a safely-derived pointer that meets the requirements. [ Note: That is, that the aligned version of the pointer would be before the beginning of the memory block allocated for the object or array of objects, or after one past the end of that memory block. -- end note ]</p>
-
-<h1>Example Implementations</h1>
-
-<p>For the integral types, these alignment functions have trivial implementations:</p>
-
-<ul>
-<li><code>integral align_up(integral x, size_t a)</code> -> <code>(x + (integral(a) - 1)) &amp; -integral(a)</code></li>
-<li><code>integral align_down(integral x, size_t a)</code> -> <code>x &amp; -integral(a)</code></li>
-<li><code>bool is_aligned(integral x, size_t a)</code> -> <code>(x &amp; (integral(a) - 1)) == 0</code></li>
-</ul>
+<h3>Example implementations</h3>
 
 <p>For most modern systems, the pointer variants can be trivially implemented by casting to <code>uintptr_t</code></p>
 
-<ul>
-<li><code>void* align_up(void* p, size_t a)</code> -> <code>reinterpret_cast&lt;void*&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p), a))</code></li>
-<li><code>void* align_down(void* p, size_t a)</code> -> <code>reinterpret_cast&lt;void*&gt;(align_down(reinterpret_cast&lt;uintptr_t&gt;(p), a))</code></li>
-<li><code>bool is_aligned(void* p, size_t a)</code> -> <code>is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p), a)</code></li>
-</ul>
+<pre><code>bool is_aligned(void* p, size_t a) {
+  return is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p));
+}
+
+void* align_up(void* p, size_t a) {
+  return reinterpret_cast&lt;void*&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p)));
+}
+
+void* align_down(void* p, size_t a) {
+  return reinterpret_cast&lt;void*&gt;(align_down(reinterpret_cast&lt;uintptr_t&gt;(p)));
+}
+</code></pre>
 
 <p>Note that the above assumes the above assume a flat address space and that arithmetic on <code>uintptr_t</code> is
 equivalent to arithmetic on <code>char*</code>. Neither of which is required by the standard. It is entirely possible
 for an implementation to perform any transformation when casting <code>void*</code> to <code>uintptr_t</code> as long the 
 transformation can be reversed when casting back from <code>uintptr_t</code> to <code>void*</code>.</p>
+
+<h2>Typed pointer alignment adjustment (T*)</h2>
+
+<p>The following functions adjust the alignment of a typed pointer.</p>
+
+<pre><code>//Returns the pointer t such that t &gt;=p and is_aligned(t, a) == true
+template &lt;typename T&gt;
+  T* align_up(T* p, size_t a)
+
+//Returns the pointer t such that t &lt;=p and is_aligned(t, a) == true
+template &lt;typename T&gt;
+  T* align_down(T* p, size_t a)
+</code></pre>
+
+<p>The following are also required:</p>
+
+<pre><code>template &lt;&gt; void* align_up&lt;void*&gt;(void* p, size_t a) { align_up(p, a); } //calls the overloaded version
+template &lt;&gt; void* align_down&lt;void*&gt;(void* p, size_t a) { align_down(p, a); } //calls the overloaded version
+//Repeat for const void*, volatile void*, and const volatile void*
+</code></pre>
+
+<h3>Shared Pre-conditions</h3>
+
+<ul>
+<li><code>a</code> must be a power of 2, or results undefined.</li>
+<li><code>a &gt;= alignof(T)</code>, or results undefined</li>
+<li>if <code>a &gt;= PTRDIFF_MAX</code>, the results are implementation defined.</li>
+<li>if <code>p == nullptr</code>, the results are implementation defined.</li>
+<li>if the result does not reside in the same <em>memory block</em> as <code>p</code>, the results are implementation defined.</li>
+</ul>
+
+<h3>Example Implementations</h3>
+
+<pre><code>template &lt;typename T&gt;
+  T* align_up(T* p, size_t a) {
+    return reinterpret_cast&lt;T*&gt;(align_up&lt;void*&gt;(p, a)); 
+  }
+
+//Returns the pointer t such that t &lt;=p and is_aligned(t, a) == true
+template &lt;typename T&gt;
+  T* align_down(T* p, size_t a) {
+    return reinterpret_cast&lt;T*&gt;(align_down&lt;void*&gt;(p, a)); 
+  }
+</code></pre>
+
+<h2>Alignment casts (U*) -> (T*)</h2>
+
+<p>We also provide a set of alignment casts:</p>
+
+<p>For all of these, <code>std::is_pointer&lt;T&gt;::value == true</code></p>
+
+<pre><code>//Returns the smallest pointer t of type T* where reinterpret_cast&lt;void*&gt;(t) &gt; reinterpret_cast&lt;void*&gt;p and t is aligned to a
+template &lt;typename T, typename U&gt;
+  T align_up_cast&lt;T&gt;(U* p, size_t a=alignof(T));
+
+//Returns the smallest pointer t of type T* where reinterpret_cast&lt;void*&gt;(t) &gt; reinterpret_cast&lt;void*&gt;p and t is aligned to a
+template &lt;typename T, typename U&gt;
+  T align_down&lt;T&gt;(U* p, size_t a=alignof(T));
+</code></pre>
+
+<h3>Shared Pre-conditions</h3>
+
+<ul>
+<li><code>a</code> must be a power of 2, or the result is undefined</li>
+<li><code>a &gt;= alignof(T) &amp;&amp; a &gt;= alignof(U)</code>, or the result is undefined</li>
+<li>if <code>a &gt;= PTRDIFF_MAX</code>, the results are implementation defined.</li>
+<li>If <code>p</code> is not aligned to std::alignof(p), the result is undefined.</li>
+<li>If <code>p == nullptr</code>, the result is undefined</li>
+<li>The result must reside within the same <em>memory block</em> as <code>p</code>, otherwise the result is implementation defined.</li>
+</ul>
+
+<h3>Example implementation</h3>
+
+<pre><code>template &lt;typename U, typename T=U&gt;
+  T align_up_cast&lt;T&gt;(U* p, size_t a=alignof(T)) {
+    return reinterpret_cast&lt;T&gt;(align_up(p, a));
+}
+
+template &lt;typename U, typename T=U&gt;
+  T align_down&lt;T&gt;(U* p, size_t a=alignof(T)) {
+    return reinterpret_cast&lt;T&gt;(align_up(p, a));
+}
+</code></pre>
+
+<h3>Compiler cast alignment warnings (-Wcast-align)</h3>
+
+<p>Some compilers throw a warning if you cast a type with lesser alignment to a type with greater alignment.</p>
+
+<p>For example, on clang 3.4 with <code>-Wcast-align</code> enabled, the following code has a warning: <code>cast from 'char*' to 'int*' increases required alignment from 1 to 4 [-Wcast-align]</code></p>
+
+<pre><code>int main() {
+  void* f;
+  return *(int*)(char*)f;
+}
+</code></pre>
+
+<p>Implementations should not fire this warning for <code>align_up_cast</code> or <code>align_down_cast</code>.
+These functions should become the standard way to perform alignment on pointers.</p>
+
+<h1>Use Cases</h1>
+
+<ul>
+<li>Operating system kernels, where pointers are represented or interchangable with <code>uintptr_t</code></li>
+<li>Device drivers and memory mapped IO</li>
+<li>Custom Memory allocators</li>
+<li>Encryption</li>
+<li>Hashing</li>
+<li>IO and serialization</li>
+<li>Simd lopps</li>
+<li>Simd aligned loads and stores</li>
+<li>Marshalling data for device drivers</li>
+<li>Formatting data for GPU buffers in Graphics API's like OpenGL</li>
+</ul>
+
+<h2>Usage Examples</h2>
+
+<pre><code>//Cast array of ints to array of simd ints.
+int32_t* x = /* something */
+auto* s = align_up_cast&lt;int128_t*&gt;(x);
+</code></pre>
+
+<!--- -->
+
+<pre><code>//Get a pointer of type int32_t* that is aligned up by 16 bytes.
+int32_t* x = /* something */
+x = align_up(x, 16);
+</code></pre>
 
 <h1>Acknowledgments</h1>
 
@@ -194,4 +351,5 @@ purpose of that paper. Thank you to everyone who has been credited by N3864 for 
 <ul>
 <li><a name="N3864"></a>[N3864] Fioravante, Matthew <em>N3864 - A constexpr bitwise operations library for C++</em>, Available online at <a href="https://github.com/fmatthew5876/stdcxx-bitops">https://github.com/fmatthew5876/stdcxx-bitops</a></li>
 <li><a name="LXR"></a>[LXR] <em>Linux/include/linux/kernel.h</em> Available online at <a href="http://lxr.free-electrons.com/source/include/linux/kernel.h#L50">http://lxr.free-electrons.com/source/include/linux/kernel.h#L50</a></li>
+<li><a name="IsoCpp"></a>[IsoCpp] <em>ISO C++ standard</em></li>
 </ul>
