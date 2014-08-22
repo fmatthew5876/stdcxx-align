@@ -88,8 +88,8 @@ Terminology
 =======================
 
 When we say a *memory block*, we mean a block of valid memory allocated to the application either on the stack, heap, or elsewhere.
-As is described in 5.7.5 \[[IsoCpp](#IsoCpp)\], the valid set of addresses in this block span from the first address inside
-of the block up to and including 1 + the last address in the memory block.
+As is described in 5.7.5 \[[IsoCpp](#IsoCpp)\], the valid set of addresses in this block span from the `first address`
+of the block up to and including `1 + the last address`.
 
 Technical Specification
 ====================
@@ -118,7 +118,7 @@ For all of the following, `std::is_integral<integral>::value == true`
 
 ### Shared Pre-Conditions 
 
-The result is undefined if:
+The result is undefined if any of:
 
 * `a == 0`
 * `a` is not a power of 2
@@ -155,14 +155,14 @@ NOTE: Implementations should support all extended integral types.
     bool is_aligned(const volatile void* p, size_t a);
 
     //Returns nullptr if p == nullptr
-    //Returns the pointer t such that t >=p and is_aligned(t, a) == true
+    //Returns the pointer t such that t >= p and is_aligned(t, a) == true
     void* align_up(void* p, size_t a);
     void* align_up(const void* p, size_t a);
     void* align_up(volatile void* p, size_t a);
     void* align_up(const volatile void* p, size_t a);
 
     //Returns nullptr if p == nullptr
-    //Returns the pointer t such that t >=p and is_aligned(t, a) == true
+    //Returns the pointer t such that t >= p and is_aligned(t, a) == true
     void* align_down(void* p, size_t a);
     void* align_down(const void* p, size_t a);
     void* align_down(volatile void* p, size_t a);
@@ -170,12 +170,12 @@ NOTE: Implementations should support all extended integral types.
 
 ### Shared Pre-Conditions
 
-The result is undefined if:
+The result is undefined if any of:
 
 * `a == 0`
 * `a` is not a power of 2
 
-The result is implementation defined if:
+The result is implementation defined if any of:
 
 * `a >= PTRDIFF_MAX`
 * `p` does not point to an existing *memory block*
@@ -208,12 +208,12 @@ transformation can be reversed when casting back from `uintptr_t` to `void*`.
 The following functions adjust the alignment of a typed pointer.
 
     //Returns nullptr if p == nullptr
-    //Returns the pointer t such that t >=p and is_aligned(t, a) == true
+    //Returns the pointer t such that t >= p and is_aligned(t, a) == true
     template <typename T>
       T* align_up(T* p, size_t a)
 
     //Returns nullptr if p == nullptr
-    //Returns the pointer t such that t <=p and is_aligned(t, a) == true
+    //Returns the pointer t such that t <= p and is_aligned(t, a) == true
     template <typename T>
       T* align_down(T* p, size_t a)
 
@@ -231,13 +231,13 @@ The following specializations are also required. These all call the overloaded `
 
 ### Shared Pre-conditions
 
-The results are undefined if:
+The results are undefined if any of:
 
 * `a < alignof(T)`,
 * `a == 0`
 * `a` is not a power of 2
 
-The results are implementation defined if:
+The results are implementation defined if any of:
 
 * `a >= PTRDIFF_MAX`
 * `p` does not point to an existing *memory block*
@@ -272,13 +272,13 @@ can optionally be checked by the implementation for correctness.
 
 ### Shared Pre-conditions
 
-The results are undefined if:
+The results are undefined if any of:
 
 * `a < alignof(T)`
 * `a == 0`
 * `a` is not a power of 2
 
-The results are implementation defined if:
+The results are implementation defined if any of:
 
 * `a >= PTRDIFF_MAX`
 * `p` does not point to an existing *memory block*
