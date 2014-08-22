@@ -8,7 +8,7 @@ Alignment helpers for C++
 
 The latest draft, reference header, and links to past discussions on github: 
 
-* https://github.com/fmatthew5876/stdcxx-align
+* <https://github.com/fmatthew5876/stdcxx-align>
 
 Introduction
 =============================
