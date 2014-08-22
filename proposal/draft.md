@@ -15,7 +15,10 @@ Introduction
 
 This proposal adds support for a few mnemonics which are useful for
 low level code which has to manually align blocks of memory. It also adds two
-new alignment cast, which allow safe alignment up or down conversions between typed pointers.
+new alignment casts, which allow safe alignment up or down conversions between differently typed pointers.
+
+This proposal was originally a small part of \[[N3864](#N3864)\] but has been broken out as it is somewhat unrelated to the core
+purpose of that paper.
 
 Impact on the standard
 =============================
@@ -36,7 +39,7 @@ in low level applications such as memory allocators, simd code, device
 drivers, compression routines, encryption, and binary IO.
 
 The operations `is_aligned()`, `align_up()`, and `align_down()`
-are commonly reimplemented over and over again as macros in C and/or
+are commonly re-implemented over and over again as macros in C and/or
 inline template functions in C++.
 
 We propose to standardize these 3 simple mnemonics for the following
@@ -46,6 +49,7 @@ reasons:
 * There are many applications which could take advantage of these functions today.
 * By providing standard library implementations, users do not have to google, write, test, and maintain their own when they need them.
 * These are so trivial to implement that the full implementation is included in this paper.
+* Implementation defined behaviors allow implementors to provide deeper access into platform specific memory model.
 
 Current state of the art
 =============================
@@ -80,7 +84,7 @@ We conclude that `std::align` is much too specific for general alignment calcula
 use case and should only be considered as a helper function for when that use case is needed.
 `std::align` could also be implemented using this proposal.
 
-Terminology and Background
+Terminology
 =======================
 
 When we say a *memory block*, we mean a block of valid memory allocated to the application either on the stack, heap, or elsewhere.
@@ -92,15 +96,8 @@ Technical Specification
 
 We will now describe the additions to the `<memory>` header. This is a procedural library implemented
 entirely using templated and overloaded free functions.
-For functions which have pre-conditions on their inputs, we
-have opted for maximal efficiency with unchecked narrow contracts. Each pre-condition has
+Each pre-condition has
 either undefined or implementation defines results and each case is documented below.
-
-The template arguments for each proposed function are named `integral` to indicate generic support
-for all builtin integral types, signed and unsigned. This also includes implementation specific
-wider integral types. All of the functions in this proposal
-accept signed integers but have undefined results for negative numbers.
-The example implementations depend on a 2's complement representation but implementability of this proposal does not.
 
 ## Alignment math (int)
 
@@ -146,25 +143,30 @@ All of these implementations are trivial, efficient, and portable.
         return x & -integral(a);
       }
 
-NOTE: Implementations should support all implementation specific extended integral types.
+NOTE: Implementations should support all extended integral types.
 
 ## Untyped pointer alignment adjustment (void\*)
 
+    //Returns false if p == nullptr
+    //Returns true if p is aligned by a
     bool is_aligned(void* p, size_t a);
     bool is_aligned(const void* p, size_t a);
     bool is_aligned(volatile void* p, size_t a);
     bool is_aligned(const volatile void* p, size_t a);
 
+    //Returns nullptr if p == nullptr
+    //Returns the pointer t such that t >=p and is_aligned(t, a) == true
     void* align_up(void* p, size_t a);
     void* align_up(const void* p, size_t a);
     void* align_up(volatile void* p, size_t a);
     void* align_up(const volatile void* p, size_t a);
 
+    //Returns nullptr if p == nullptr
+    //Returns the pointer t such that t >=p and is_aligned(t, a) == true
     void* align_down(void* p, size_t a);
     void* align_down(const void* p, size_t a);
     void* align_down(volatile void* p, size_t a);
     void* align_down(const volatile void* p, size_t a);
-
 
 ### Shared Pre-Conditions
 
@@ -172,10 +174,6 @@ The result is undefined if:
 
 * `a == 0`
 * `a` is not a power of 2
-* `p == nullptr`
-    * Alternative: `is_aligned(nullptr) == false`
-    * Alternative: `align_up(nullptr) == align_down(nullptr) == nullptr`
-        * The alternatives may burden the efficiency of the implementation
 
 The result is implementation defined if:
 
@@ -200,7 +198,8 @@ For most modern systems, the pointer variants can be trivially implemented by ca
     }
 
 Note that the above assumes the above assume a flat address space and that arithmetic on `uintptr_t` is
-equivalent to arithmetic on `char*`. Neither of which is required by the standard. It is entirely possible
+equivalent to arithmetic on `char*`. While these conditions prevail for the majority of modern platforms, 
+neither of which is required by the standard. It is entirely possible
 for an implementation to perform any transformation when casting `void*` to `uintptr_t` as long the 
 transformation can be reversed when casting back from `uintptr_t` to `void*`.
 
@@ -208,25 +207,27 @@ transformation can be reversed when casting back from `uintptr_t` to `void*`.
 
 The following functions adjust the alignment of a typed pointer.
 
+    //Returns nullptr if p == nullptr
     //Returns the pointer t such that t >=p and is_aligned(t, a) == true
     template <typename T>
       T* align_up(T* p, size_t a)
 
+    //Returns nullptr if p == nullptr
     //Returns the pointer t such that t <=p and is_aligned(t, a) == true
     template <typename T>
       T* align_down(T* p, size_t a)
 
-The following are also required:
+The following specializations are also required. These all call the overloaded `align_[up|down](void*, size_t)`.
 
-    template <> void* align_up<void*>(void* p, size_t a) { align_up(p, a); } //calls the overloaded version
-    template <> const void* align_up<const void*>(const void* p, size_t a) { align_up(p, a); } //calls the overloaded version
-    template <> volatile void* align_up<volatile void*>(volatile void* p, size_t a) { align_up(p, a); } //calls the overloaded version
-    template <> const volatile void* align_up<const volatile void*>(const volatile void* p, size_t a) { align_up(p, a); } //calls the overloaded version
+    template <> void* align_up<void*>(void* p, size_t a) { align_up(p, a); }
+    template <> const void* align_up<const void*>(const void* p, size_t a) { align_up(p, a); }
+    template <> volatile void* align_up<volatile void*>(volatile void* p, size_t a) { align_up(p, a); }
+    template <> const volatile void* align_up<const volatile void*>(const volatile void* p, size_t a) { align_up(p, a); }
 
-    template <> void* align_down<void*>(void* p, size_t a) { align_down(p, a); } //calls the overloaded version
-    template <> const void* align_down<const void*>(const void* p, size_t a) { align_down(p, a); } //calls the overloaded version
-    template <> volatile void* align_down<volatile void*>(volatile void* p, size_t a) { align_down(p, a); } //calls the overloaded version
-    template <> const volatile void* align_down<const volatile void*>(const volatile void* p, size_t a) { align_down(p, a); } //calls the overloaded version
+    template <> void* align_down<void*>(void* p, size_t a) { align_down(p, a); }
+    template <> const void* align_down<const void*>(const void* p, size_t a) { align_down(p, a); }
+    template <> volatile void* align_down<volatile void*>(volatile void* p, size_t a) { align_down(p, a); }
+    template <> const volatile void* align_down<const volatile void*>(const volatile void* p, size_t a) { align_down(p, a); }
 
 ### Shared Pre-conditions
 
@@ -235,7 +236,6 @@ The results are undefined if:
 * `a < alignof(T)`,
 * `a == 0`
 * `a` is not a power of 2
-* `p == nullptr`
 
 The results are implementation defined if:
 
@@ -257,10 +257,12 @@ The results are implementation defined if:
     
 ## Alignment casts (U\*) -> (T\*)
 
+    //Returns nullptr if p == nullptr
     //Returns the smallest pointer t of type T* where reinterpret_cast<void*>(t) > reinterpret_cast<void*>p and t is aligned to a
     template <typename T, typename U>
       T* align_up_cast<T*>(U* p, size_t a=alignof(T));
 
+    //Returns nullptr if p == nullptr
     //Returns the smallest pointer t of type T* where reinterpret_cast<void*>(t) > reinterpret_cast<void*>p and t is aligned to a
     template <typename T, typename U>
       T* align_down<T*>(U* p, size_t a=alignof(T));
@@ -275,7 +277,6 @@ The results are undefined if:
 * `a < alignof(T)`
 * `a == 0`
 * `a` is not a power of 2
-* `p == nullptr`
 
 The results are implementation defined if:
 
@@ -286,13 +287,13 @@ The results are implementation defined if:
 ### Example implementation
 
     template <typename U, typename T=U>
-      T align_up_cast<T>(U* p, size_t a=alignof(T)) {
-        return reinterpret_cast<T>(align_up(p, a));
+      T* align_up_cast<T*>(U* p, size_t a=alignof(T)) {
+        return reinterpret_cast<T*>(align_up(p, a));
     }
 
     template <typename U, typename T=U>
-      T align_down<T>(U* p, size_t a=alignof(T)) {
-        return reinterpret_cast<T>(align_up(p, a));
+      T* align_down<T*>(U* p, size_t a=alignof(T)) {
+        return reinterpret_cast<T*>(align_up(p, a));
     }
 
 ### Compiler cast alignment warnings (-Wcast-align)
@@ -310,15 +311,15 @@ Implementations should not fire such warnings for `align_up_cast` or `align_down
 Use Cases
 ===============
 
-* Operating system kernels, where pointers are represented or interchangable with `uintptr_t`
+* Operating system kernels, where pointers are represented or interchangeable with `uintptr_t`
 * Device drivers and memory mapped IO
 * Custom Memory allocators
 * Encryption algorithms
 * Hashing algorithms
 * IO and serialization
-* Simd lopps
+* Simd loops
 * Simd aligned loads and stores
-* Marshalling data for device drivers
+* Marshaling data for device drivers
 * Formatting data for GPU buffers in Graphics API's like OpenGL
 
 Usage Examples
@@ -330,7 +331,7 @@ Compute page boundaries using integers:
     auto page_begin = align_down(addr_in_page, PAGE_SIZE);
     auto page_end = align_up(addr_in_page, PAGE_SIZE);
 
-In a disk device driver, optimize reads and write from buffers where are already block size aligned.
+In a disk device driver, optimize reads and write from buffers which are already block size aligned.
 
     void* user_buffer = /* something */
     if(is_aligned(user_buffer, BLOCK_SIZE) {
@@ -358,9 +359,7 @@ External usage
 Acknowledgments
 ====================
 
-This mini-proposal was originally part of \[[N3864](#N3864)\] but has been broken out as it is somewhat unrelated to the core
-purpose of that paper. Thank you to everyone who has been credited by N3864 for also helping with this proposal.
-
+Thank you to everyone who has been credited by N3864 for also helping with this proposal.
 Special thanks to everyone on the std-proposals forum for their valuable insight and feedback.
 
 References
