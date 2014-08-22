@@ -157,16 +157,16 @@ NOTE: Implementations should support all extended integral types.
     //Returns nullptr if p == nullptr
     //Returns the pointer t such that t >= p and is_aligned(t, a) == true
     void* align_up(void* p, size_t a);
-    void* align_up(const void* p, size_t a);
-    void* align_up(volatile void* p, size_t a);
-    void* align_up(const volatile void* p, size_t a);
+    const void* align_up(const void* p, size_t a);
+    volatile void* align_up(volatile void* p, size_t a);
+    const volatile void* align_up(const volatile void* p, size_t a);
 
     //Returns nullptr if p == nullptr
     //Returns the pointer t such that t >= p and is_aligned(t, a) == true
     void* align_down(void* p, size_t a);
-    void* align_down(const void* p, size_t a);
-    void* align_down(volatile void* p, size_t a);
-    void* align_down(const volatile void* p, size_t a);
+    const void* align_down(const void* p, size_t a);
+    volatile void* align_down(volatile void* p, size_t a);
+    const volatile void* align_down(const volatile void* p, size_t a);
 
 ### Shared Pre-Conditions
 
@@ -205,29 +205,17 @@ transformation can be reversed when casting back from `uintptr_t` to `void*`.
 
 ## Typed pointer alignment adjustment (T\*)
 
-The following functions adjust the alignment of a typed pointer.
+For all of the following `std::is_pointer<T>::value == true`
 
     //Returns nullptr if p == nullptr
     //Returns the pointer t such that t >= p and is_aligned(t, a) == true
     template <typename T>
-      T* align_up(T* p, size_t a)
+      T align_up(T p, size_t a)
 
     //Returns nullptr if p == nullptr
     //Returns the pointer t such that t <= p and is_aligned(t, a) == true
     template <typename T>
-      T* align_down(T* p, size_t a)
-
-The following specializations are also required. These all call the overloaded `align_[up|down](void*, size_t)`.
-
-    template <> void* align_up<void*>(void* p, size_t a) { align_up(p, a); }
-    template <> const void* align_up<const void*>(const void* p, size_t a) { align_up(p, a); }
-    template <> volatile void* align_up<volatile void*>(volatile void* p, size_t a) { align_up(p, a); }
-    template <> const volatile void* align_up<const volatile void*>(const volatile void* p, size_t a) { align_up(p, a); }
-
-    template <> void* align_down<void*>(void* p, size_t a) { align_down(p, a); }
-    template <> const void* align_down<const void*>(const void* p, size_t a) { align_down(p, a); }
-    template <> volatile void* align_down<volatile void*>(volatile void* p, size_t a) { align_down(p, a); }
-    template <> const volatile void* align_down<const volatile void*>(const volatile void* p, size_t a) { align_down(p, a); }
+      T align_down(T p, size_t a)
 
 ### Shared Pre-conditions
 
@@ -245,27 +233,35 @@ The results are implementation defined if any of:
     
 ### Example Implementations
 
+    //__carry_cv<T,V>::type is V with the same cv qualifiers as T
+    template <typename T, typename V> using __carry_cv =
+    conditional<is_const<T>::value,
+    conditional<is_volatile<T>::value,const volatile V,const V>,
+    conditional<is_volatile<T>::value,volatile V, V>>;
+
     template <typename T>
-      T* align_up(T* p, size_t a) {
-        return reinterpret_cast<T*>(align_up<void*>(p, a)); 
+      T align_up(T p, size_t a) {
+        return reinterpret_cast<T*>(align_up(reinterpret_cast<typename __carry_cv<typename std::remove_pointer<T>::type,void>::type*>(p), a));
       }
 
     template <typename T>
       T* align_down(T* p, size_t a) {
-        return reinterpret_cast<T*>(align_down<void*>(p, a)); 
+        return reinterpret_cast<T*>(align_up(reinterpret_cast<typename __carry_cv<typename std::remove_pointer<T>::type,void>::type*>(p), a));
       }
     
 ## Alignment casts (U\*) -> (T\*)
 
-    //Returns nullptr if p == nullptr
-    //Returns the smallest pointer t of type T* where reinterpret_cast<void*>(t) > reinterpret_cast<void*>p and t is aligned to a
-    template <typename T, typename U>
-      T* align_up_cast<T*>(U* p, size_t a=alignof(T));
+For all of the following, `std::is_pointer<T>::value == true`
 
     //Returns nullptr if p == nullptr
     //Returns the smallest pointer t of type T* where reinterpret_cast<void*>(t) > reinterpret_cast<void*>p and t is aligned to a
     template <typename T, typename U>
-      T* align_down<T*>(U* p, size_t a=alignof(T));
+      T align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<T>::type))
+
+    //Returns nullptr if p == nullptr
+    //Returns the smallest pointer t of type T* where reinterpret_cast<void*>(t) > reinterpret_cast<void*>p and t is aligned to a
+    template <typename T, typename U>
+      T align_down(U* p, size_t a=alignof(typename std::remove_pointer<T>::type))
 
 These functions are designed to become the standard way of doing a `reinterpret_cast` and an alignment adjustment all in one operation which
 can optionally be checked by the implementation for correctness.
@@ -286,15 +282,15 @@ The results are implementation defined if any of:
 
 ### Example implementation
 
-    template <typename U, typename T=U>
-      T* align_up_cast<T*>(U* p, size_t a=alignof(T)) {
-        return reinterpret_cast<T*>(align_up(p, a));
-    }
+    template <typename T, typename U>
+      inline T align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<T>::type)) {
+        return align_up(reinterpret_cast<T>(p), a);
+      }
 
-    template <typename U, typename T=U>
-      T* align_down<T*>(U* p, size_t a=alignof(T)) {
-        return reinterpret_cast<T*>(align_up(p, a));
-    }
+    template <typename T, typename U>
+      inline T align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<T>::type)) {
+        return align_down(reinterpret_cast<T>(p), a);
+      }
 
 ### Compiler cast alignment warnings (-Wcast-align)
 
