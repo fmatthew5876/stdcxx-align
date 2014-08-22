@@ -149,7 +149,7 @@ NOTE: Implementations should support all extended integral types.
 
 For all of the following `std::is_pointer<pointer>::value == true`
 
-    //Returns true if p is aligned to a, or false if p == nullptr
+    //Returns true if p == nullptr or p is aligned to a, otherwise return false
     template <typename pointer>
       bool is_aligned(pointer p, size_t a);
 
