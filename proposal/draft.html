@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="m&#x61;&#x69;l&#116;&#x6F;:&#x66;&#109;&#97;&#116;t&#104;&#x65;&#119;&#53;&#x38;7&#54;&#64;&#103;&#x6D;&#97;&#x69;&#x6C;&#x2E;&#99;&#x6F;&#x6D;">&#x66;&#109;&#97;&#116;t&#104;&#x65;&#119;&#53;&#x38;7&#54;&#64;&#103;&#x6D;&#97;&#x69;&#x6C;&#x2E;&#99;&#x6F;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#x69;l&#x74;&#111;:&#102;&#x6D;&#97;&#x74;&#116;&#x68;&#101;&#x77;&#53;8&#55;&#54;&#64;&#103;&#109;&#97;&#x69;&#108;&#x2E;&#x63;&#111;&#x6D;">&#102;&#x6D;&#97;&#x74;&#116;&#x68;&#101;&#x77;&#53;8&#55;&#54;&#64;&#103;&#109;&#97;&#x69;&#108;&#x2E;&#x63;&#111;&#x6D;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -147,6 +147,16 @@ template&lt;typename integral&gt;
 </code></pre>
 
 <p>NOTE: Implementations should support all extended integral types.</p>
+
+<h2>Special handling for nullptr_t (nullptr)</h2>
+
+<p>We provide explicit overloads for <code>nullptr_t</code>. This is because without this overload,
+<code>align_up(nullptr, a)</code> is ambiguous (similarly with <code>is_aligned</code> and <code>align_down</code>).</p>
+
+<pre><code>bool is_aligned(nullptr_t, size_t) { return false; }
+nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
+nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
+</code></pre>
 
 <h2>Untyped pointer alignment adjustment (void*)</h2>
 
