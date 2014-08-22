@@ -30,6 +30,8 @@ template <typename T>
     return x & (-a);
   }
 
+  inline bool is_aligned(nullptr_t, size_t) { return false; }
+
   inline bool is_aligned(void* p, size_t a) {
     return is_aligned(reinterpret_cast<uintptr_t>(p), a);
   }
@@ -43,6 +45,8 @@ template <typename T>
     return is_aligned(reinterpret_cast<uintptr_t>(p), a);
   }
 
+  inline nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
+
   inline void* align_up(void* p, size_t a) {
     return reinterpret_cast<void*>(align_up(reinterpret_cast<uintptr_t>(p), a));
   }
@@ -55,6 +59,8 @@ template <typename T>
   inline const volatile void* align_up(const volatile void* p, size_t a) {
     return reinterpret_cast<const volatile void*>(align_up(reinterpret_cast<uintptr_t>(p), a));
   }
+
+  inline nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
 
   inline void* align_down(void* p, size_t a) {
     return reinterpret_cast<void*>(align_down(reinterpret_cast<uintptr_t>(p), a));

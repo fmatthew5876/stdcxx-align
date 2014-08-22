@@ -145,6 +145,17 @@ All of these implementations are trivial, efficient, and portable.
 
 NOTE: Implementations should support all extended integral types.
 
+##Special handling for nullptr_t (nullptr)
+
+We provide explicit overloads for `nullptr_t`. This is because without this overload,
+`align_up(nullptr, a)` is ambiguous (similarly with `is_aligned` and `align_down`).
+
+    bool is_aligned(nullptr_t, size_t) { return false; }
+    nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
+    nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
+
+
+
 ## Untyped pointer alignment adjustment (void\*)
 
     //Returns false if p == nullptr
@@ -167,6 +178,7 @@ NOTE: Implementations should support all extended integral types.
     const void* align_down(const void* p, size_t a);
     volatile void* align_down(volatile void* p, size_t a);
     const volatile void* align_down(const volatile void* p, size_t a);
+
 
 ### Shared Pre-Conditions
 
