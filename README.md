@@ -1,4 +1,4 @@
-N3864 - Alignment helpers for C++
+NXXXX - Alignment helpers for C++
 ======
 
 For the latest working draft go here:
