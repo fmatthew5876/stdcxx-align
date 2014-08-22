@@ -153,11 +153,11 @@ For all of the following `std::is_pointer<pointer>::value == true`
     template <typename pointer>
       bool is_aligned(pointer p, size_t a);
 
-    //Returns the smallest pointer t such that t >= p and is_aligned(t, a) == true
+    //Returns the smallest pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <typename pointer>
       T align_up(pointer p, size_t a);
 
-    //Returns the largest pointer t such that t <= p and is_aligned(t, a) == true
+    //Returns the largest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <typename pointer>
       T align_down(pointer p, size_t a);
 
@@ -168,6 +168,7 @@ The results are undefined if any of:
 * `!std::is_same<typename std::remove_cv<T>::type,void> && a < alignof(T)`,
 * `a == 0`
 * `a` is not a power of 2
+* `a > std::numeric_limits<uintptr_t>::max()` (note: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
 
 The results are implementation defined if any of:
 
@@ -226,6 +227,7 @@ The results are undefined if any of:
 * `a < alignof(T)`
 * `a == 0`
 * `a` is not a power of 2
+* `a > std::numeric_limits<uintptr_t>::max()` (note: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
 
 The results are implementation defined if any of:
 
