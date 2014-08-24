@@ -161,6 +161,12 @@ For all of the following `std::is_pointer<pointer>::value == true`
     template <typename pointer>
       T align_down(pointer p, size_t a);
 
+We also add special overloads for `nullptr_t` because `is_aligned(nullptr, a)` and others will not compile.
+
+    bool is_aligned(nullptr_t, size_t) { return true; }
+    nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
+    nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
+
 ### Shared Pre-conditions
 
 The results are undefined if any of:
@@ -211,6 +217,14 @@ For all of the following, `std::is_pointer<pointer>::value == true`
     //Returns the greatest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
     template <typename pointer, typename U>
       pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
+
+Again, we add `nullptr_t` overloads. 
+
+    template <typename pointer>
+      nullptr_t align_up_cast(nullptr_t, size_t a=1) { return nullptr; }
+
+    template <typename pointer, typename U>
+      nullptr_t align_down_cast(nullptr_t, size_t a=1) { return nullptr; }
 
 These functions are designed to become the standard way of doing a `reinterpret_cast` and an alignment adjustment all in one operation which
 can optionally be checked by the implementation for correctness.
