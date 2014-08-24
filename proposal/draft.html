@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#105;&#108;&#x74;&#111;:&#x66;&#109;&#97;&#x74;&#116;&#x68;&#x65;&#x77;&#x35;&#56;&#x37;6&#64;&#x67;&#109;&#x61;&#105;&#x6C;&#46;c&#x6F;&#x6D;">&#x66;&#109;&#97;&#x74;&#116;&#x68;&#x65;&#x77;&#x35;&#56;&#x37;6&#64;&#x67;&#109;&#x61;&#105;&#x6C;&#46;c&#x6F;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#x61;&#x69;&#108;&#116;&#x6F;:f&#x6D;&#x61;&#116;t&#x68;&#x65;&#119;&#x35;&#x38;&#55;&#54;&#64;&#x67;m&#x61;&#105;&#108;&#46;&#x63;&#111;&#x6D;">f&#x6D;&#x61;&#116;t&#x68;&#x65;&#119;&#x35;&#x38;&#55;&#54;&#64;&#x67;m&#x61;&#105;&#108;&#46;&#x63;&#111;&#x6D;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -165,6 +165,13 @@ template &lt;typename pointer&gt;
   T align_down(pointer p, size_t a);
 </code></pre>
 
+<p>We also add special overloads for <code>nullptr_t</code> because <code>is_aligned(nullptr, a)</code> and others will not compile.</p>
+
+<pre><code>bool is_aligned(nullptr_t, size_t) { return true; }
+nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
+nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
+</code></pre>
+
 <h3>Shared Pre-conditions</h3>
 
 <p>The results are undefined if any of:</p>
@@ -219,6 +226,15 @@ template &lt;typename pointer, typename U&gt;
 //Returns the greatest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
 template &lt;typename pointer, typename U&gt;
   pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
+</code></pre>
+
+<p>Again, we add <code>nullptr_t</code> overloads. </p>
+
+<pre><code>template &lt;typename pointer&gt;
+  nullptr_t align_up_cast(nullptr_t, size_t a=1) { return nullptr; }
+
+template &lt;typename pointer, typename U&gt;
+  nullptr_t align_down_cast(nullptr_t, size_t a=1) { return nullptr; }
 </code></pre>
 
 <p>These functions are designed to become the standard way of doing a <code>reinterpret_cast</code> and an alignment adjustment all in one operation which
