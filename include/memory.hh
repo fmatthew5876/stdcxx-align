@@ -9,27 +9,26 @@ namespace std {
 
 template <typename T>
   constexpr auto is_aligned(T x, size_t a) noexcept
-  -> typename std::enable_if<std::is_integral<T>::value, bool>::type {
+  -> typename std::enable_if<std::is_integral<T>::value &&!is_same<T,bool>::value, bool>::type {
     return (x & (a-1)) == 0;
   }
 
 template <typename T>
   constexpr auto align_up(T x, size_t a) noexcept
-  -> typename std::enable_if<std::is_integral<T>::value, T>::type {
+  -> typename std::enable_if<std::is_integral<T>::value &&!is_same<T,bool>::value, bool>::type {
     return (x + (a-1)) & -a;
   }
 
 template <typename T>
   constexpr auto align_down(T x, size_t a) noexcept
-  -> typename std::enable_if<std::is_integral<T>::value, T>::type {
+  -> typename std::enable_if<std::is_integral<T>::value &&!is_same<T,bool>::value, bool>::type {
     return x & (-a);
   }
 
 
-  inline bool is_aligned(void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
-  inline bool is_aligned(const void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
-  inline bool is_aligned(volatile void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
-  inline bool is_aligned(const volatile void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
+  inline bool is_aligned(const volatile void* p, size_t a) {
+    return is_aligned(reinterpret_cast<uintptr_t>(p), a);
+  }
 
   template <typename T>
     inline auto align_up(T p, size_t a)

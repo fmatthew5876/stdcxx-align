@@ -7,9 +7,6 @@
 #include <limits>
 
 //Explicit instantiations to check compilation
-template bool std::is_aligned<void*>(void*, size_t);
-template bool std::is_aligned<int*>(int*, size_t);
-template bool std::is_aligned<float*>(float*, size_t);
 template void* std::align_up<void*>(void*, size_t);
 template int* std::align_up<int*>(int*, size_t);
 template float* std::align_up<float*>(float*, size_t);

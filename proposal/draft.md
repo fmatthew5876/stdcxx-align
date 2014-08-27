@@ -49,7 +49,7 @@ reasons:
 * There are many applications which could take advantage of these functions today.
 * By providing standard library implementations, users do not have to google, write, test, and maintain their own when they need them.
 * These are so trivial to implement that the full implementation is included in this paper.
-* Implementation defined behaviors allow implementors to provide deeper access into platform specific memory model.
+* Implementation-defined behaviors allow implementors to provide deeper access into platform specific memory model.
 
 Implementation vs Undefined behavior
 --------------------------
@@ -124,7 +124,7 @@ Terminology
 =======================
 
 When we say a *memory block*, we mean a block of valid memory allocated to the application either on the stack, heap, or elsewhere.
-As is described in 5.7.5 \[[IsoCpp](#IsoCpp)\], the valid set of addresses in this block span from the `first address`
+As is described in &sect;5.7/5 \[[IsoCpp](#IsoCpp)\], the valid set of addresses in this block span from the `first address`
 of the block up to and including `1 + the last address`.
 
 Technical Specification
@@ -137,72 +137,75 @@ either undefined or implementation defines results and each case is documented b
 
 ## Integral alignment math
 
-For all of the following, `std::is_integral<integral>::value == true`
+For all of the following, `std::is_integral<integral>::value && !std::is_same<integral<bool>::value == true`
 
     //Returns true if x == 0 or x is a multiple of a
-    template<typename integral>
+    template<class integral>
       constexpr bool is_aligned(integral x, size_t a) noexcept;
 
     //Returns n, where n is the least number >= x and is_aligned(n, a)
-    template<typename integral>
+    template<class integral>
       constexpr integral align_up(integral x, size_t a) noexcept;
 
     //Returns n, where n is the greatest number <= x and is_aligned(n, a)
-    template<typename integral>
+    template<class integral>
       constexpr integral align_down(integral x, size_t a) noexcept;
 
 
-### Shared Pre-Conditions 
+### Shared Requirements 
 
 The result is undefined if any of:
 
 * `a == 0`
 * `a` is not a power of 2
 * `x < 0`
+* `integral` is a signed type and the result causes an overflow in either `integral` or its promoted arithmetic type.
+
+The result is 0 if the result is not undefined and any of:
+
+* `integral` is an unsigned type and the result causes an overflow in either `integral` or its promoted arithmetic type.
 
 ### Example Implementations
 
 All of these implementations are trivial, efficient, and portable.
 
-    <template <typename integral>
+    template <class integral>
       constexpr bool is_aligned(integral x, size_t a) noexcept {
-        return (x & (integral(a) - 1)) == 0
+        return (x & (integral(a) - 1)) == 0;
       }
 
-    <template <typename integral>
+    template <class integral>
       constexpr integral align_up(integral x, size_t a) noexcept {
-        return (x + (integral(a) - 1)) & -integral(a);
+        return integral((x + (integral(a) - 1)) & ~integral(a-1));
       }
 
-    <template <typename integral>
+    template <class integral>
       constexpr integral align_down(integral x, size_t a) noexcept {
-        return x & -integral(a);
+        return integral(x & ~integral(a-1));
       }
 
-NOTE: Implementations should support all extended integral types.
+* Implementations should support all extended integral types.
+* On 2's complement machines `~integral(a-1)` can be optimized to `-integral(a)`.
 
 ## Pointer alignment
 
 ### Pointer Alignment check
 
     //Returns true if p == nullptr or p is aligned to a, otherwise return false
-    bool is_aligned(void* p, size_t a);
-    bool is_aligned(const void* p, size_t a);
-    bool is_aligned(volatile void* p, size_t a);
     bool is_aligned(const volatile void* p, size_t a);
 
-#### Shared Pre-conditions
+#### Requirements
 
-The results are undefined if any of:
+The result is undefined if any of:
 
 * `a == 0`
 * `a` is not a power of 2
 * `a > std::numeric_limits<uintptr_t>::max()` (note: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
 
-The results are implementation defined if any of:
+The result is implementation-defined if the result is not undefined and any of:
 
-* `a >= PTRDIFF_MAX`
-* `p` does not point to an existing *memory block*
+* `a > PTRDIFF_MAX`
+* `p != nullptr` does not point to an existing *memory block*
 * The result does not reside within the same *memory block* as `p`
     
 ### Pointer alignment adjustment
@@ -210,11 +213,11 @@ The results are implementation defined if any of:
 For all of the following `std::is_pointer<pointer>::value == true`
 
     //Returns the least pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-    template <typename pointer>
+    template <class pointer>
       T align_up(pointer p, size_t a);
 
     //Returns the greatest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-    template <typename pointer>
+    template <class pointer>
       T align_down(pointer p, size_t a);
 
 We also add special overloads for `nullptr_t` because `align_up(nullptr, a)` and `align_down(nullptr, a)` will not compile.
@@ -222,35 +225,35 @@ We also add special overloads for `nullptr_t` because `align_up(nullptr, a)` and
     nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
     nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
 
-#### Shared Pre-conditions
+#### Shared Requirements
 
-The results are undefined if any of:
+The result is undefined if any of:
 
-* `!std::is_same<typename std::remove_cv<T>::type,void> && a < alignof(T)`,
+* `!std::is_same<typename std::remove_cv<T>::type,void>::value && a < alignof(T)`,
 * `a == 0`
 * `a` is not a power of 2
 * `a > std::numeric_limits<uintptr_t>::max()` (note: this result would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
 
-The results are implementation defined if any of:
+The result is implementation-defined if the result is not undefined and any of:
 
-* `a >= PTRDIFF_MAX`
-* `p` does not point to an existing *memory block*
+* `a > PTRDIFF_MAX`
+* `p != nullptr` does not point to an existing *memory block*
 * The result does not reside within the same *memory block* as `p`
     
 ### Example Implementations for Pointer Operations
 
-    bool is_aligned(void* p, size_t a) {
-      return is_aligned(reinterpret_cast<uintptr_t>(p));
+    bool is_aligned(const volatile void* p, size_t a) {
+      return is_aligned(reinterpret_cast<uintptr_t>(p), a);
     }
 
-    template <typename pointer>
+    template <class pointer>
       pointer align_up(pointer p, size_t a) {
-        return reinterpret_cast<pointer>(align_up(reinterpret_cast<uintptr_t>(p)));
+        return reinterpret_cast<pointer>(align_up(reinterpret_cast<uintptr_t>(p), a));
       }
 
-    template <typename pointer>
+    template <class pointer>
       pointer align_down(pointer p, size_t a) {
-        return reinterpret_cast<pointer>(align_down(reinterpret_cast<uintptr_t>(p)));
+        return reinterpret_cast<pointer>(align_down(reinterpret_cast<uintptr_t>(p), a));
       }
 
 Note that the above assumes the above assume a flat address space and that arithmetic on `uintptr_t` is
@@ -265,52 +268,52 @@ transformation can be reversed when casting back from `uintptr_t` to `void*`.
 For all of the following, `std::is_pointer<pointer>::value == true`
 
     //Returns the least pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
-    template <typename pointer, typename U>
+    template <class pointer, class U>
       pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
     //Returns the greatest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
-    template <typename pointer, typename U>
+    template <class pointer, class U>
       pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
 Again, we add `nullptr_t` overloads. 
 
-    template <typename pointer>
+    template <class pointer>
       nullptr_t align_up_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 
-    template <typename pointer, typename U>
+    template <class pointer, class U>
       nullptr_t align_down_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 
 These functions are designed to become the standard way of doing a `reinterpret_cast` and an alignment adjustment all in one operation which
 can optionally be checked by the implementation for correctness.
 
-### Shared Pre-conditions
+### Shared Requirements
 
 Returns `nullptr` if:
 
 * `p == nullptr`
 
 
-The results are undefined if any of:
+The result is undefined if any of:
 
 * `a < alignof(T)`
 * `a == 0`
 * `a` is not a power of 2
 * `a > std::numeric_limits<uintptr_t>::max()` (note: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
 
-The results are implementation defined if any of:
+The result is implementation-defined if the result is not undefined and any of:
 
-* `a >= PTRDIFF_MAX`
-* `p` does not point to an existing *memory block*
+* `a > PTRDIFF_MAX`
+* `p != nullptr` does not point to an existing *memory block*
 * The result does not reside within the same *memory block* as `p`
 
 ### Example implementation
 
-    template <typename pointer, typename U>
+    template <class pointer, class U>
       inline pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type)) {
         return reinterpret_cast<pointer>(align_up(p, a));
       }
 
-    template <typename pointer, typename U>
+    template <class pointer, class U>
       inline pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type)) {
         return reinterpret_cast<pointer>(align_down(p), a));
       }
