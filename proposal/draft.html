@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#x61;&#x69;&#108;&#116;&#x6F;:f&#x6D;&#x61;&#116;t&#x68;&#x65;&#119;&#x35;&#x38;&#55;&#54;&#64;&#x67;m&#x61;&#105;&#108;&#46;&#x63;&#111;&#x6D;">f&#x6D;&#x61;&#116;t&#x68;&#x65;&#119;&#x35;&#x38;&#55;&#54;&#64;&#x67;m&#x61;&#105;&#108;&#46;&#x63;&#111;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;&#105;&#x6C;&#x74;&#x6F;:&#x66;&#x6D;&#x61;&#116;&#x74;&#x68;&#x65;&#x77;&#53;&#56;&#x37;&#54;&#64;&#x67;&#109;&#97;&#105;&#108;.&#x63;&#x6F;&#x6D;">&#x66;&#x6D;&#x61;&#116;&#x74;&#x68;&#x65;&#x77;&#53;&#56;&#x37;&#54;&#64;&#x67;&#109;&#97;&#105;&#108;.&#x63;&#x6F;&#x6D;</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -32,7 +32,7 @@ proposed functions are added to the <code>&lt;memory&gt;</code> header.
 No new headers are introduced and the implementations 
 of these functions on common modern platforms are trivial.</p>
 
-<h1>Motivation</h1>
+<h1>Motivation and Design</h1>
 
 <p>Manually aligning blocks of memory is an operation often required
 in low level applications such as memory allocators, simd code, device
@@ -52,6 +52,42 @@ reasons:</p>
 <li>These are so trivial to implement that the full implementation is included in this paper.</li>
 <li>Implementation defined behaviors allow implementors to provide deeper access into platform specific memory model.</li>
 </ul>
+
+<h2>Implementation vs Undefined behavior</h2>
+
+<p>Consider the following code fragment</p>
+
+<pre><code>void process(char* ptr, char* end) {
+   char* simd_ptr = std::align_down(ptr);
+   char* simd_end = std::align_down(end);
+
+   int128_t simd;
+   simd = simd_load_aligned(simd_ptr);
+   simd &amp;= mask_leading_bits(ptr-simd_ptr);
+   process16(simd_ptr);
+   simd_ptr += sizeof(int128_t);
+
+   for(;simd_ptr &lt; simd_end; ++simd_ptr) {
+ simd = simd_load_aligned(simd_ptr);
+     process16(simd_ptr);
+   }
+   simd = simd_load_aligned(simd_ptr);
+   simd_ptr &amp;= mask_trailing_bits(end - simd_ptr);
+   process16(simd_ptr);
+}
+</code></pre>
+
+<p>If implemented by hand today in C++, this code would trigger
+undefined behavior if <code>simd_ptr</code> and/or <code>simd_end</code> were located
+outside of the <em>memory block</em> containing <code>ptr</code>.</p>
+
+<p>In general, undefined behavior is a reasonable expect because
+<code>simd_ptr</code> could now point to an invalid or restricted memory address.
+On most modern machines, one can read and write to any memory address
+within the same memory page. Each page is aligned to and is of size <code>PAGE_SIZE</code>,
+which is commonly 4096 bytes. Since simd registers are typically
+nowhere near this size, on these implementations one can safely <code>align_down</code> or
+<code>align_up</code> and arbitrary pointer</p>
 
 <h1>Current state of the art</h1>
 
@@ -148,36 +184,22 @@ template&lt;typename integral&gt;
 
 <p>NOTE: Implementations should support all extended integral types.</p>
 
-<h2>Pointer alignment adjustment</h2>
+<h2>Pointer alignment</h2>
 
-<p>For all of the following <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
+<h3>Pointer Alignment check</h3>
 
 <pre><code>//Returns true if p == nullptr or p is aligned to a, otherwise return false
-template &lt;typename pointer&gt;
-  bool is_aligned(pointer p, size_t a);
-
-//Returns the least pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-template &lt;typename pointer&gt;
-  T align_up(pointer p, size_t a);
-
-//Returns the greatest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-template &lt;typename pointer&gt;
-  T align_down(pointer p, size_t a);
+bool is_aligned(void* p, size_t a);
+bool is_aligned(const void* p, size_t a);
+bool is_aligned(volatile void* p, size_t a);
+bool is_aligned(const volatile void* p, size_t a);
 </code></pre>
 
-<p>We also add special overloads for <code>nullptr_t</code> because <code>is_aligned(nullptr, a)</code> and others will not compile.</p>
-
-<pre><code>bool is_aligned(nullptr_t, size_t) { return true; }
-nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
-nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
-</code></pre>
-
-<h3>Shared Pre-conditions</h3>
+<h4>Shared Pre-conditions</h4>
 
 <p>The results are undefined if any of:</p>
 
 <ul>
-<li><code>!std::is_same&lt;typename std::remove_cv&lt;T&gt;::type,void&gt; &amp;&amp; a &lt; alignof(T)</code>,</li>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
 <li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> (note: this would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> --end note).</li>
@@ -191,13 +213,50 @@ nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
 <li>The result does not reside within the same <em>memory block</em> as <code>p</code></li>
 </ul>
 
-<h3>Example Implementations</h3>
+<h3>Pointer alignment adjustment</h3>
 
-<pre><code>template &lt;typename pointer&gt;
-  bool is_aligned(pointer p, size_t a) {
-    return is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p));
-  }
+<p>For all of the following <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
+<pre><code>//Returns the least pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+template &lt;typename pointer&gt;
+  T align_up(pointer p, size_t a);
+
+//Returns the greatest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+template &lt;typename pointer&gt;
+  T align_down(pointer p, size_t a);
+</code></pre>
+
+<p>We also add special overloads for <code>nullptr_t</code> because <code>align_up(nullptr, a)</code> and <code>align_down(nullptr, a)</code> will not compile.</p>
+
+<pre><code>nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
+nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
+</code></pre>
+
+<h4>Shared Pre-conditions</h4>
+
+<p>The results are undefined if any of:</p>
+
+<ul>
+<li><code>!std::is_same&lt;typename std::remove_cv&lt;T&gt;::type,void&gt; &amp;&amp; a &lt; alignof(T)</code>,</li>
+<li><code>a == 0</code></li>
+<li><code>a</code> is not a power of 2</li>
+<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> (note: this result would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> --end note).</li>
+</ul>
+
+<p>The results are implementation defined if any of:</p>
+
+<ul>
+<li><code>a &gt;= PTRDIFF_MAX</code></li>
+<li><code>p</code> does not point to an existing <em>memory block</em></li>
+<li>:w
+The result does not reside within the same <em>memory block</em> as <code>p</code></li>
+</ul>
+
+<h3>Example Implementations for Pointer Operations</h3>
+
+<pre><code>bool is_aligned(void* p, size_t a) {
+  return is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p));
+}
 template &lt;typename pointer&gt;
   pointer align_up(pointer p, size_t a) {
     return reinterpret_cast&lt;pointer&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p)));
@@ -231,10 +290,10 @@ template &lt;typename pointer, typename U&gt;
 <p>Again, we add <code>nullptr_t</code> overloads. </p>
 
 <pre><code>template &lt;typename pointer&gt;
-  nullptr_t align_up_cast(nullptr_t, size_t a=1) { return nullptr; }
+  nullptr_t align_up_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 
 template &lt;typename pointer, typename U&gt;
-  nullptr_t align_down_cast(nullptr_t, size_t a=1) { return nullptr; }
+  nullptr_t align_down_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 </code></pre>
 
 <p>These functions are designed to become the standard way of doing a <code>reinterpret_cast</code> and an alignment adjustment all in one operation which
@@ -294,6 +353,7 @@ template &lt;typename pointer, typename U&gt;
 <h1>Use Cases</h1>
 
 <ul>
+<li>Future C++ standardization work on aligned allocators and support for over aligned types.</li>
 <li>Operating system kernels, where pointers are represented or interchangeable with <code>uintptr_t</code></li>
 <li>Device drivers and memory mapped IO</li>
 <li>Custom Memory allocators</li>
