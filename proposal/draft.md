@@ -382,8 +382,9 @@ External usage
 Acknowledgments
 ====================
 
-Thank you to everyone who has been credited by N3864 for also helping with this proposal.
-Special thanks to everyone on the std-proposals forum for their valuable insight and feedback.
+* Thank you to everyone who has been credited by N3864 for also helping with this proposal.
+* Special thanks for Melissa Mears, Thiago Macieira, and David Krauss for their help in discussing issues and helping to improve this proposal.
+
 
 References
 ==================
