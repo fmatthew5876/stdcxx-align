@@ -235,14 +235,14 @@ The results are implementation defined if any of:
 
 * `a >= PTRDIFF_MAX`
 * `p` does not point to an existing *memory block*
-* :w
-The result does not reside within the same *memory block* as `p`
+* The result does not reside within the same *memory block* as `p`
     
 ### Example Implementations for Pointer Operations
 
     bool is_aligned(void* p, size_t a) {
       return is_aligned(reinterpret_cast<uintptr_t>(p));
     }
+
     template <typename pointer>
       pointer align_up(pointer p, size_t a) {
         return reinterpret_cast<pointer>(align_up(reinterpret_cast<uintptr_t>(p)));
