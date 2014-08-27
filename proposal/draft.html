@@ -4,7 +4,7 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Numerics Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;&#105;&#x6C;&#x74;&#x6F;:&#x66;&#x6D;&#x61;&#116;&#x74;&#x68;&#x65;&#x77;&#53;&#56;&#x37;&#54;&#64;&#x67;&#109;&#97;&#105;&#108;.&#x63;&#x6F;&#x6D;">&#x66;&#x6D;&#x61;&#116;&#x74;&#x68;&#x65;&#x77;&#53;&#56;&#x37;&#54;&#64;&#x67;&#109;&#97;&#105;&#108;.&#x63;&#x6F;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#105;l&#116;&#x6F;:&#102;&#x6D;&#x61;&#116;&#116;&#104;&#101;&#119;&#53;&#x38;&#x37;&#54;&#64;gm&#97;&#x69;&#108;&#x2E;&#x63;&#x6F;m">&#102;&#x6D;&#x61;&#116;&#116;&#104;&#101;&#119;&#53;&#x38;&#x37;&#54;&#64;gm&#97;&#x69;&#108;&#x2E;&#x63;&#x6F;m</a></li>
 </ul>
 
 <p>The latest draft, reference header, and links to past discussions on github: </p>
@@ -248,8 +248,7 @@ nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
 <ul>
 <li><code>a &gt;= PTRDIFF_MAX</code></li>
 <li><code>p</code> does not point to an existing <em>memory block</em></li>
-<li>:w
-The result does not reside within the same <em>memory block</em> as <code>p</code></li>
+<li>The result does not reside within the same <em>memory block</em> as <code>p</code></li>
 </ul>
 
 <h3>Example Implementations for Pointer Operations</h3>
@@ -257,6 +256,7 @@ The result does not reside within the same <em>memory block</em> as <code>p</cod
 <pre><code>bool is_aligned(void* p, size_t a) {
   return is_aligned(reinterpret_cast&lt;uintptr_t&gt;(p));
 }
+
 template &lt;typename pointer&gt;
   pointer align_up(pointer p, size_t a) {
     return reinterpret_cast&lt;pointer&gt;(align_up(reinterpret_cast&lt;uintptr_t&gt;(p)));
