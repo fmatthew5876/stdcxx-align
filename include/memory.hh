@@ -26,15 +26,10 @@ template <typename T>
   }
 
 
-  template <typename T>
-  inline auto is_aligned(T p, size_t a)
-    -> typename std::enable_if<std::is_pointer<T>::value, bool>::type {
-    return is_aligned(reinterpret_cast<uintptr_t>(p), a);
-  }
-
-  inline bool is_aligned(nullptr_t, size_t) {
-    return true;
-  }
+  inline bool is_aligned(void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
+  inline bool is_aligned(const void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
+  inline bool is_aligned(volatile void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
+  inline bool is_aligned(const volatile void* p, size_t a) { return is_aligned(reinterpret_cast<uintptr_t>(p)); }
 
   template <typename T>
     inline auto align_up(T p, size_t a)
