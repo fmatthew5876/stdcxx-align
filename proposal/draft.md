@@ -31,7 +31,7 @@ proposed functions are added to the `<memory>` header.
 No new headers are introduced and the implementations 
 of these functions on common modern platforms are trivial.
 
-Motivation
+Motivation and Design
 ================
 
 Manually aligning blocks of memory is an operation often required
@@ -50,6 +50,42 @@ reasons:
 * By providing standard library implementations, users do not have to google, write, test, and maintain their own when they need them.
 * These are so trivial to implement that the full implementation is included in this paper.
 * Implementation defined behaviors allow implementors to provide deeper access into platform specific memory model.
+
+Implementation vs Undefined behavior
+--------------------------
+
+Consider the following code fragment
+
+    void process(char* ptr, char* end) {
+       char* simd_ptr = std::align_down(ptr);
+       char* simd_end = std::align_down(end);
+
+       int128_t simd;
+       simd = simd_load_aligned(simd_ptr);
+       simd &= mask_leading_bits(ptr-simd_ptr);
+       process16(simd_ptr);
+       simd_ptr += sizeof(int128_t);
+
+       for(;simd_ptr < simd_end; ++simd_ptr) {
+	 simd = simd_load_aligned(simd_ptr);
+         process16(simd_ptr);
+       }
+       simd = simd_load_aligned(simd_ptr);
+       simd_ptr &= mask_trailing_bits(end - simd_ptr);
+       process16(simd_ptr);
+    }
+
+If implemented by hand today in C++, this code would trigger
+undefined behavior if `simd_ptr` and/or `simd_end` were located
+outside of the *memory block* containing `ptr`.
+
+In general, undefined behavior is a reasonable expect because
+`simd_ptr` could now point to an invalid or restricted memory address.
+On most modern machines, one can read and write to any memory address
+within the same memory page. Each page is aligned to and is of size `PAGE_SIZE`,
+which is commonly 4096 bytes. Since simd registers are typically
+nowhere near this size, on these implementations one can safely `align_down` or
+`align_up` and arbitrary pointer
 
 Current state of the art
 =============================
@@ -145,33 +181,20 @@ All of these implementations are trivial, efficient, and portable.
 
 NOTE: Implementations should support all extended integral types.
 
-## Pointer alignment adjustment
+## Pointer alignment
 
-For all of the following `std::is_pointer<pointer>::value == true`
+### Pointer Alignment check
 
     //Returns true if p == nullptr or p is aligned to a, otherwise return false
-    template <typename pointer>
-      bool is_aligned(pointer p, size_t a);
+    bool is_aligned(void* p, size_t a);
+    bool is_aligned(const void* p, size_t a);
+    bool is_aligned(volatile void* p, size_t a);
+    bool is_aligned(const volatile void* p, size_t a);
 
-    //Returns the least pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-    template <typename pointer>
-      T align_up(pointer p, size_t a);
-
-    //Returns the greatest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-    template <typename pointer>
-      T align_down(pointer p, size_t a);
-
-We also add special overloads for `nullptr_t` because `is_aligned(nullptr, a)` and others will not compile.
-
-    bool is_aligned(nullptr_t, size_t) { return true; }
-    nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
-    nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
-
-### Shared Pre-conditions
+#### Shared Pre-conditions
 
 The results are undefined if any of:
 
-* `!std::is_same<typename std::remove_cv<T>::type,void> && a < alignof(T)`,
 * `a == 0`
 * `a` is not a power of 2
 * `a > std::numeric_limits<uintptr_t>::max()` (note: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
@@ -182,13 +205,44 @@ The results are implementation defined if any of:
 * `p` does not point to an existing *memory block*
 * The result does not reside within the same *memory block* as `p`
     
-### Example Implementations
+### Pointer alignment adjustment
 
+For all of the following `std::is_pointer<pointer>::value == true`
+
+    //Returns the least pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <typename pointer>
-      bool is_aligned(pointer p, size_t a) {
-        return is_aligned(reinterpret_cast<uintptr_t>(p));
-      }
+      T align_up(pointer p, size_t a);
 
+    //Returns the greatest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+    template <typename pointer>
+      T align_down(pointer p, size_t a);
+
+We also add special overloads for `nullptr_t` because `align_up(nullptr, a)` and `align_down(nullptr, a)` will not compile.
+
+    nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
+    nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
+
+#### Shared Pre-conditions
+
+The results are undefined if any of:
+
+* `!std::is_same<typename std::remove_cv<T>::type,void> && a < alignof(T)`,
+* `a == 0`
+* `a` is not a power of 2
+* `a > std::numeric_limits<uintptr_t>::max()` (note: this result would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
+
+The results are implementation defined if any of:
+
+* `a >= PTRDIFF_MAX`
+* `p` does not point to an existing *memory block*
+* :w
+The result does not reside within the same *memory block* as `p`
+    
+### Example Implementations for Pointer Operations
+
+    bool is_aligned(void* p, size_t a) {
+      return is_aligned(reinterpret_cast<uintptr_t>(p));
+    }
     template <typename pointer>
       pointer align_up(pointer p, size_t a) {
         return reinterpret_cast<pointer>(align_up(reinterpret_cast<uintptr_t>(p)));
@@ -221,10 +275,10 @@ For all of the following, `std::is_pointer<pointer>::value == true`
 Again, we add `nullptr_t` overloads. 
 
     template <typename pointer>
-      nullptr_t align_up_cast(nullptr_t, size_t a=1) { return nullptr; }
+      nullptr_t align_up_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 
     template <typename pointer, typename U>
-      nullptr_t align_down_cast(nullptr_t, size_t a=1) { return nullptr; }
+      nullptr_t align_down_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 
 These functions are designed to become the standard way of doing a `reinterpret_cast` and an alignment adjustment all in one operation which
 can optionally be checked by the implementation for correctness.
@@ -276,6 +330,7 @@ Implementations should not fire such warnings for `align_up_cast` or `align_down
 Use Cases
 ===============
 
+* Future C++ standardization work on aligned allocators and support for over aligned types.
 * Operating system kernels, where pointers are represented or interchangeable with `uintptr_t`
 * Device drivers and memory mapped IO
 * Custom Memory allocators
