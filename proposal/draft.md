@@ -3,7 +3,7 @@ Alignment helpers for C++
 
 * Document Number: NXXXX
 * Date: 2014-08-20
-* Programming Language C++, Numerics Working Group
+* Programming Language C++, Library Working Group
 * Reply-to: Matthew Fioravante <fmatthew5876@gmail.com>
 
 The latest draft, reference header, and links to past discussions on github: 
@@ -19,6 +19,9 @@ new alignment casts, which allow safe alignment up or down conversions between d
 
 This proposal was originally a small part of \[[N3864](#N3864)\] but has been broken out as it is somewhat unrelated to the core
 purpose of that paper.
+
+Ideally, this proposal would be included in the next C++ Technical Specification so that it may be tested by real
+users before becoming part of the standard forever.
 
 Impact on the standard
 =============================
