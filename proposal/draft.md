@@ -6,7 +6,7 @@ Alignment helpers for C++
 * Programming Language C++, Library Evolution Working Group
 * Reply-to: Matthew Fioravante <fmatthew5876@gmail.com>
 
-The latest draft, reference header, and links to past discussions on github: 
+The latest draft, reference header, and links to past discussions on Github: 
 
 * <https://github.com/fmatthew5876/stdcxx-align>
 
@@ -20,8 +20,7 @@ new alignment casts, which allow safe alignment up or down conversions between d
 This proposal was originally a small part of \[[N3864](#N3864)\] but has been broken out as it is somewhat unrelated to the core
 purpose of that paper.
 
-Ideally, this proposal would be included in the next C++ Technical Specification so that it may be tested by real
-users before becoming part of the standard forever.
+This proposal is intended for a C++ Technical Specification.
 
 Impact on the standard
 =============================
@@ -51,44 +50,8 @@ reasons:
 * They are fundamental low level building blocks which are universally applicable to a wide variety of domains.
 * There are many applications which could take advantage of these functions today.
 * By providing standard library implementations, users do not have to google, write, test, and maintain their own when they need them.
-* These are so trivial to implement that the full implementation is included in this paper.
+* These are so trivial to implement on most platforms that the an example implementation is included in this paper.
 * Implementation-defined behaviors allow implementors to provide deeper access into platform specific memory model.
-
-Implementation vs Undefined behavior
---------------------------
-
-Consider the following code fragment
-
-    void process(char* ptr, char* end) {
-       char* simd_ptr = std::align_down(ptr);
-       char* simd_end = std::align_down(end);
-
-       int128_t simd;
-       simd = simd_load_aligned(simd_ptr);
-       simd &= mask_leading_bits(ptr-simd_ptr);
-       process16(simd_ptr);
-       simd_ptr += sizeof(int128_t);
-
-       for(;simd_ptr < simd_end; ++simd_ptr) {
-	 simd = simd_load_aligned(simd_ptr);
-         process16(simd_ptr);
-       }
-       simd = simd_load_aligned(simd_ptr);
-       simd_ptr &= mask_trailing_bits(end - simd_ptr);
-       process16(simd_ptr);
-    }
-
-If implemented by hand today in C++, this code would trigger
-undefined behavior if `simd_ptr` and/or `simd_end` were located
-outside of the *memory block* containing `ptr`.
-
-In general, undefined behavior is a reasonable expect because
-`simd_ptr` could now point to an invalid or restricted memory address.
-On most modern machines, one can read and write to any memory address
-within the same memory page. Each page is aligned to and is of size `PAGE_SIZE`,
-which is commonly 4096 bytes. Since simd registers are typically
-nowhere near this size, on these implementations one can safely `align_down` or
-`align_up` and arbitrary pointer
 
 Current state of the art
 =============================
@@ -122,6 +85,42 @@ The alignment calculations here cannot be done with `std::align`.
 We conclude that `std::align` is much too specific for general alignment calculations. It has a narrow
 use case and should only be considered as a helper function for when that use case is needed.
 `std::align` could also be implemented using this proposal.
+
+Implementation vs Undefined behavior
+--------------------------
+
+Consider the following code fragment
+
+    void process(char* ptr, char* end) {
+       char* simd_ptr = std::align_down(ptr);
+       char* simd_end = std::align_down(end);
+
+       int128_t simd;
+       simd = simd_load_aligned(simd_ptr);
+       simd &= mask_leading_bits(ptr-simd_ptr);
+       process16(simd_ptr);
+       simd_ptr += sizeof(int128_t);
+
+       for(;simd_ptr < simd_end; ++simd_ptr) {
+	 simd = simd_load_aligned(simd_ptr);
+         process16(simd_ptr);
+       }
+       simd = simd_load_aligned(simd_ptr);
+       simd_ptr &= mask_trailing_bits(end - simd_ptr);
+       process16(simd_ptr);
+    }
+
+If implemented by hand today in C++, this code would trigger
+undefined behavior if `simd_ptr` and/or `simd_end` were located
+outside of the *memory block* containing `ptr`.
+
+In general, undefined behavior is a reasonable expectation because
+`simd_ptr` could now point to an invalid or restricted memory address.
+On most modern machines, one can read and write to any memory address
+within the same memory page. Each page is aligned to and is of size `PAGE_SIZE`,
+which is commonly 4096 bytes. Since simd registers are typically
+nowhere near this size, on these implementations one can safely `align_down` or
+`align_up` and arbitrary pointer.
 
 Terminology
 =======================
@@ -203,12 +202,12 @@ The result is undefined if any of:
 
 * `a == 0`
 * `a` is not a power of 2
-* `a > std::numeric_limits<uintptr_t>::max()` (note: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
+* `a > std::numeric_limits<uintptr_t>::max()` [*note*: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` *--end note*].
 
 The result is implementation-defined if the result is not undefined and any of:
 
 * `a > PTRDIFF_MAX`
-* `p != nullptr` does not point to an existing *memory block*
+* `p != nullptr` and `p` does not point to an existing *memory block*
 * The result does not reside within the same *memory block* as `p`
     
 ### Pointer alignment adjustment
@@ -217,11 +216,11 @@ For all of the following `std::is_pointer<pointer>::value == true`
 
     //Returns the least pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <class pointer>
-      T align_up(pointer p, size_t a);
+      pointer align_up(pointer p, size_t a);
 
     //Returns the greatest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <class pointer>
-      T align_down(pointer p, size_t a);
+      pointer align_down(pointer p, size_t a);
 
 We also add special overloads for `nullptr_t` because `align_up(nullptr, a)` and `align_down(nullptr, a)` will not compile.
 
@@ -232,15 +231,14 @@ We also add special overloads for `nullptr_t` because `align_up(nullptr, a)` and
 
 The result is undefined if any of:
 
-* `!std::is_same<typename std::remove_cv<T>::type,void>::value && a < alignof(T)`,
 * `a == 0`
 * `a` is not a power of 2
-* `a > std::numeric_limits<uintptr_t>::max()` (note: this result would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
+* `a > std::numeric_limits<uintptr_t>::max()` [*Note*: this result would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` *--end note*].
 
 The result is implementation-defined if the result is not undefined and any of:
 
 * `a > PTRDIFF_MAX`
-* `p != nullptr` does not point to an existing *memory block*
+* `p != nullptr` and `p` does not point to an existing *memory block*
 * The result does not reside within the same *memory block* as `p`
     
 ### Example Implementations for Pointer Operations
@@ -298,15 +296,14 @@ Returns `nullptr` if:
 
 The result is undefined if any of:
 
-* `a < alignof(T)`
 * `a == 0`
 * `a` is not a power of 2
-* `a > std::numeric_limits<uintptr_t>::max()` (note: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` --end note).
+* `a > std::numeric_limits<uintptr_t>::max()` [*Note*: this would require a platform where `sizeof(size_t) > sizeof(uintptr_t)` *--end note*].
 
 The result is implementation-defined if the result is not undefined and any of:
 
 * `a > PTRDIFF_MAX`
-* `p != nullptr` does not point to an existing *memory block*
+* `p != nullptr` and `p` does not point to an existing *memory block*
 * The result does not reside within the same *memory block* as `p`
 
 ### Example implementation
@@ -318,7 +315,7 @@ The result is implementation-defined if the result is not undefined and any of:
 
     template <class pointer, class U>
       inline pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type)) {
-        return reinterpret_cast<pointer>(align_down(p), a));
+        return reinterpret_cast<pointer>(align_down(p, a));
       }
 
 ### Compiler cast alignment warnings (-Wcast-align)
@@ -346,7 +343,7 @@ Use Cases
 * Simd loops
 * Simd aligned loads and stores
 * Marshaling data for device drivers
-* Formatting data for GPU buffers in Graphics API's like OpenGL
+* Formatting data for GPU buffers in Graphics API's such as OpenGL
 
 Usage Examples
 ----------------
