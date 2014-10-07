@@ -141,17 +141,20 @@ either undefined or implementation defines results and each case is documented b
 
 For all of the following, `std::is_integral<integral>::value && !std::is_same<integral<bool>::value == true`
 
-    //Returns true if x == 0 or x is a multiple of a
     template<class integral>
       constexpr bool is_aligned(integral x, size_t a) noexcept;
 
-    //Returns n, where n is the least number >= x and is_aligned(n, a)
+Returns `true` if `x == 0` or `x` is a multiple of `a`.
+
     template<class integral>
       constexpr integral align_up(integral x, size_t a) noexcept;
 
-    //Returns n, where n is the greatest number <= x and is_aligned(n, a)
+Returns `n`, where `n` is the least number `>= x` and `is_aligned(n, a)`.
+
     template<class integral>
       constexpr integral align_down(integral x, size_t a) noexcept;
+
+Returns `n`, where `n` is the greatest number `<= x` and `is_aligned(n, a)`.
 
 
 ### Shared Requirements 
@@ -193,8 +196,9 @@ All of these implementations are trivial, efficient, and portable.
 
 ### Pointer Alignment check
 
-    //Returns true if p == nullptr or p is aligned to a, otherwise return false
     bool is_aligned(const volatile void* p, size_t a);
+
+Returns `true` if `p == nullptr` or `p` is aligned to `a`, otherwise return `false`.
 
 #### Requirements
 
@@ -214,18 +218,20 @@ The result is implementation-defined if the result is not undefined and any of:
 
 For all of the following `std::is_pointer<pointer>::value == true`
 
-    //Returns the least pointer t such that t >= p and is_aligned(t, a) == true, or nullptr if p == nullptr
     template <class pointer>
       pointer align_up(pointer p, size_t a);
 
-    //Returns the greatest pointer t such that t <= p and is_aligned(t, a) == true, or nullptr if p == nullptr
+Returns the least pointer `t` such that `t >= p` and `is_aligned(t, a) == true`, or `nullptr` if `p == nullptr`.
+
     template <class pointer>
       pointer align_down(pointer p, size_t a);
 
-We also add special overloads for `nullptr_t` because `align_up(nullptr, a)` and `align_down(nullptr, a)` will not compile.
+Returns the greatest pointer `t` such that `t <= p` and `is_aligned(t, a) == true`, or `nullptr` if `p == nullptr`.
 
     nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
     nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
+
+We also add special overloads for `nullptr_t` because `align_up(nullptr, a)` and `align_down(nullptr, a)` will not compile.
 
 #### Shared Requirements
 
@@ -268,15 +274,19 @@ transformation can be reversed when casting back from `uintptr_t` to `void*`.
 
 For all of the following, `std::is_pointer<pointer>::value == true`
 
-    //Returns the least pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
+These functions are designed to become the standard way of doing a `reinterpret_cast` and an alignment adjustment all in one operation which
+can optionally be checked by the implementation for correctness.
+
     template <class pointer, class U>
       pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
-    //Returns the greatest pointer t where reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p and t is aligned to a
+Returns the least pointer `t` where `reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p` and `t` is aligned to `a`, or `nullptr` if `p == nullptr`.
+
     template <class pointer, class U>
       pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
-Again, we add `nullptr_t` overloads. 
+Returns the greatest pointer `t` where `reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p` and `t` is aligned to `a`, or `nullptr` if `p == nullptr`.
+
 
     template <class pointer>
       nullptr_t align_up_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
@@ -284,15 +294,9 @@ Again, we add `nullptr_t` overloads.
     template <class pointer, class U>
       nullptr_t align_down_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 
-These functions are designed to become the standard way of doing a `reinterpret_cast` and an alignment adjustment all in one operation which
-can optionally be checked by the implementation for correctness.
+Again, we add `nullptr_t` overloads. 
 
 ### Shared Requirements
-
-Returns `nullptr` if:
-
-* `p == nullptr`
-
 
 The result is undefined if any of:
 
