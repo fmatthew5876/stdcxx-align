@@ -4,10 +4,10 @@
 <li>Document Number: NXXXX</li>
 <li>Date: 2014-08-20</li>
 <li>Programming Language C++, Library Evolution Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;&#x69;&#x6C;&#116;&#111;:&#x66;&#x6D;&#97;&#116;&#x74;&#104;&#101;&#119;&#x35;&#x38;7&#54;&#64;&#x67;&#x6D;&#97;&#x69;&#x6C;&#x2E;&#99;&#111;&#x6D;">&#x66;&#x6D;&#97;&#116;&#x74;&#104;&#101;&#119;&#x35;&#x38;7&#54;&#64;&#x67;&#x6D;&#97;&#x69;&#x6C;&#x2E;&#99;&#111;&#x6D;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#97;&#x69;l&#x74;&#111;:&#x66;&#109;&#x61;&#x74;t&#x68;e&#119;&#x35;&#x38;&#55;&#54;&#64;&#x67;&#109;&#x61;&#x69;&#108;&#46;&#x63;&#x6F;&#x6D;">&#x66;&#109;&#x61;&#x74;t&#x68;e&#119;&#x35;&#x38;&#55;&#54;&#64;&#x67;&#109;&#x61;&#x69;&#108;&#46;&#x63;&#x6F;&#x6D;</a></li>
 </ul>
 
-<p>The latest draft, reference header, and links to past discussions on github: </p>
+<p>The latest draft, reference header, and links to past discussions on Github: </p>
 
 <ul>
 <li><a href="https://github.com/fmatthew5876/stdcxx-align">https://github.com/fmatthew5876/stdcxx-align</a></li>
@@ -22,8 +22,7 @@ new alignment casts, which allow safe alignment up or down conversions between d
 <p>This proposal was originally a small part of [<a href="#N3864">N3864</a>] but has been broken out as it is somewhat unrelated to the core
 purpose of that paper.</p>
 
-<p>Ideally, this proposal would be included in the next C++ Technical Specification so that it may be tested by real
-users before becoming part of the standard forever.</p>
+<p>This proposal is intended for a C++ Technical Specification.</p>
 
 <h1>Impact on the standard</h1>
 
@@ -52,45 +51,9 @@ reasons:</p>
 <li>They are fundamental low level building blocks which are universally applicable to a wide variety of domains.</li>
 <li>There are many applications which could take advantage of these functions today.</li>
 <li>By providing standard library implementations, users do not have to google, write, test, and maintain their own when they need them.</li>
-<li>These are so trivial to implement that the full implementation is included in this paper.</li>
+<li>These are so trivial to implement on most platforms that the an example implementation is included in this paper.</li>
 <li>Implementation-defined behaviors allow implementors to provide deeper access into platform specific memory model.</li>
 </ul>
-
-<h2>Implementation vs Undefined behavior</h2>
-
-<p>Consider the following code fragment</p>
-
-<pre><code>void process(char* ptr, char* end) {
-   char* simd_ptr = std::align_down(ptr);
-   char* simd_end = std::align_down(end);
-
-   int128_t simd;
-   simd = simd_load_aligned(simd_ptr);
-   simd &amp;= mask_leading_bits(ptr-simd_ptr);
-   process16(simd_ptr);
-   simd_ptr += sizeof(int128_t);
-
-   for(;simd_ptr &lt; simd_end; ++simd_ptr) {
- simd = simd_load_aligned(simd_ptr);
-     process16(simd_ptr);
-   }
-   simd = simd_load_aligned(simd_ptr);
-   simd_ptr &amp;= mask_trailing_bits(end - simd_ptr);
-   process16(simd_ptr);
-}
-</code></pre>
-
-<p>If implemented by hand today in C++, this code would trigger
-undefined behavior if <code>simd_ptr</code> and/or <code>simd_end</code> were located
-outside of the <em>memory block</em> containing <code>ptr</code>.</p>
-
-<p>In general, undefined behavior is a reasonable expect because
-<code>simd_ptr</code> could now point to an invalid or restricted memory address.
-On most modern machines, one can read and write to any memory address
-within the same memory page. Each page is aligned to and is of size <code>PAGE_SIZE</code>,
-which is commonly 4096 bytes. Since simd registers are typically
-nowhere near this size, on these implementations one can safely <code>align_down</code> or
-<code>align_up</code> and arbitrary pointer</p>
 
 <h1>Current state of the art</h1>
 
@@ -125,6 +88,42 @@ The alignment calculations here cannot be done with <code>std::align</code>.</p>
 use case and should only be considered as a helper function for when that use case is needed.
 <code>std::align</code> could also be implemented using this proposal.</p>
 
+<h2>Implementation vs Undefined behavior</h2>
+
+<p>Consider the following code fragment</p>
+
+<pre><code>void process(char* ptr, char* end) {
+   char* simd_ptr = std::align_down(ptr);
+   char* simd_end = std::align_down(end);
+
+   int128_t simd;
+   simd = simd_load_aligned(simd_ptr);
+   simd &amp;= mask_leading_bits(ptr-simd_ptr);
+   process16(simd_ptr);
+   simd_ptr += sizeof(int128_t);
+
+   for(;simd_ptr &lt; simd_end; ++simd_ptr) {
+ simd = simd_load_aligned(simd_ptr);
+     process16(simd_ptr);
+   }
+   simd = simd_load_aligned(simd_ptr);
+   simd_ptr &amp;= mask_trailing_bits(end - simd_ptr);
+   process16(simd_ptr);
+}
+</code></pre>
+
+<p>If implemented by hand today in C++, this code would trigger
+undefined behavior if <code>simd_ptr</code> and/or <code>simd_end</code> were located
+outside of the <em>memory block</em> containing <code>ptr</code>.</p>
+
+<p>In general, undefined behavior is a reasonable expectation because
+<code>simd_ptr</code> could now point to an invalid or restricted memory address.
+On most modern machines, one can read and write to any memory address
+within the same memory page. Each page is aligned to and is of size <code>PAGE_SIZE</code>,
+which is commonly 4096 bytes. Since simd registers are typically
+nowhere near this size, on these implementations one can safely <code>align_down</code> or
+<code>align_up</code> and arbitrary pointer.</p>
+
 <h1>Terminology</h1>
 
 <p>When we say a <em>memory block</em>, we mean a block of valid memory allocated to the application either on the stack, heap, or elsewhere.
@@ -142,18 +141,23 @@ either undefined or implementation defines results and each case is documented b
 
 <p>For all of the following, <code>std::is_integral&lt;integral&gt;::value &amp;&amp; !std::is_same&lt;integral&lt;bool&gt;::value == true</code></p>
 
-<pre><code>//Returns true if x == 0 or x is a multiple of a
-template&lt;class integral&gt;
+<pre><code>template&lt;class integral&gt;
   constexpr bool is_aligned(integral x, size_t a) noexcept;
+</code></pre>
 
-//Returns n, where n is the least number &gt;= x and is_aligned(n, a)
-template&lt;class integral&gt;
+<p><strong>Returns</strong>: <code>true</code> if <code>x == 0</code> or <code>x</code> is a multiple of <code>a</code>.</p>
+
+<pre><code>template&lt;class integral&gt;
   constexpr integral align_up(integral x, size_t a) noexcept;
+</code></pre>
 
-//Returns n, where n is the greatest number &lt;= x and is_aligned(n, a)
-template&lt;class integral&gt;
+<p><strong>Returns</strong>: <code>n</code>, where <code>n</code> is the least number <code>&gt;= x</code> and <code>is_aligned(n, a)</code>.</p>
+
+<pre><code>template&lt;class integral&gt;
   constexpr integral align_down(integral x, size_t a) noexcept;
 </code></pre>
+
+<p><strong>Returns</strong>: <code>n</code>, where <code>n</code> is the greatest number <code>&lt;= x</code> and <code>is_aligned(n, a)</code>.</p>
 
 <h3>Shared Requirements</h3>
 
@@ -201,9 +205,10 @@ template &lt;class integral&gt;
 
 <h3>Pointer Alignment check</h3>
 
-<pre><code>//Returns true if p == nullptr or p is aligned to a, otherwise return false
-bool is_aligned(const volatile void* p, size_t a);
+<pre><code>bool is_aligned(const volatile void* p, size_t a);
 </code></pre>
+
+<p><strong>Returns</strong>: <code>true</code> if <code>p == nullptr</code> or <code>p</code> is aligned to <code>a</code>, otherwise return <code>false</code>.</p>
 
 <h4>Requirements</h4>
 
@@ -212,14 +217,14 @@ bool is_aligned(const volatile void* p, size_t a);
 <ul>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
-<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> (note: this would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> --end note).</li>
+<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> [<em>note</em>: this would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> <em>--end note</em>].</li>
 </ul>
 
 <p>The result is implementation-defined if the result is not undefined and any of:</p>
 
 <ul>
 <li><code>a &gt; PTRDIFF_MAX</code></li>
-<li><code>p != nullptr</code> does not point to an existing <em>memory block</em></li>
+<li><code>p != nullptr</code> and <code>p</code> does not point to an existing <em>memory block</em></li>
 <li>The result does not reside within the same <em>memory block</em> as <code>p</code></li>
 </ul>
 
@@ -227,37 +232,39 @@ bool is_aligned(const volatile void* p, size_t a);
 
 <p>For all of the following <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
-<pre><code>//Returns the least pointer t such that t &gt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-template &lt;class pointer&gt;
-  T align_up(pointer p, size_t a);
-
-//Returns the greatest pointer t such that t &lt;= p and is_aligned(t, a) == true, or nullptr if p == nullptr
-template &lt;class pointer&gt;
-  T align_down(pointer p, size_t a);
+<pre><code>template &lt;class pointer&gt;
+  pointer align_up(pointer p, size_t a);
 </code></pre>
 
-<p>We also add special overloads for <code>nullptr_t</code> because <code>align_up(nullptr, a)</code> and <code>align_down(nullptr, a)</code> will not compile.</p>
+<p><strong>Returns</strong>: the least pointer <code>t</code> such that <code>t &gt;= p</code> and <code>is_aligned(t, a) == true</code>, or <code>nullptr</code> if <code>p == nullptr</code>.</p>
+
+<pre><code>template &lt;class pointer&gt;
+  pointer align_down(pointer p, size_t a);
+</code></pre>
+
+<p><strong>Returns</strong>: the greatest pointer <code>t</code> such that <code>t &lt;= p</code> and <code>is_aligned(t, a) == true</code>, or <code>nullptr</code> if <code>p == nullptr</code>.</p>
 
 <pre><code>nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
 nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
 </code></pre>
+
+<p>We also add special overloads for <code>nullptr_t</code> because <code>align_up(nullptr, a)</code> and <code>align_down(nullptr, a)</code> will not compile.</p>
 
 <h4>Shared Requirements</h4>
 
 <p>The result is undefined if any of:</p>
 
 <ul>
-<li><code>!std::is_same&lt;typename std::remove_cv&lt;T&gt;::type,void&gt;::value &amp;&amp; a &lt; alignof(T)</code>,</li>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
-<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> (note: this result would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> --end note).</li>
+<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> [<em>Note</em>: this result would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> <em>--end note</em>].</li>
 </ul>
 
 <p>The result is implementation-defined if the result is not undefined and any of:</p>
 
 <ul>
 <li><code>a &gt; PTRDIFF_MAX</code></li>
-<li><code>p != nullptr</code> does not point to an existing <em>memory block</em></li>
+<li><code>p != nullptr</code> and <code>p</code> does not point to an existing <em>memory block</em></li>
 <li>The result does not reside within the same <em>memory block</em> as <code>p</code></li>
 </ul>
 
@@ -288,16 +295,20 @@ transformation can be reversed when casting back from <code>uintptr_t</code> to 
 
 <p>For all of the following, <code>std::is_pointer&lt;pointer&gt;::value == true</code></p>
 
-<pre><code>//Returns the least pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
-template &lt;class pointer, class U&gt;
-  pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
+<p>These functions are designed to become the standard way of doing a <code>reinterpret_cast</code> and an alignment adjustment all in one operation which
+can optionally be checked by the implementation for correctness.</p>
 
-//Returns the greatest pointer t where reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p and t is aligned to a
-template &lt;class pointer, class U&gt;
+<pre><code>template &lt;class pointer, class U&gt;
+  pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
+</code></pre>
+
+<p><strong>Returns</strong>: the least pointer <code>t</code> where <code>reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p</code> and <code>t</code> is aligned to <code>a</code>, or <code>nullptr</code> if <code>p == nullptr</code>.</p>
+
+<pre><code>template &lt;class pointer, class U&gt;
   pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type))
 </code></pre>
 
-<p>Again, we add <code>nullptr_t</code> overloads. </p>
+<p><strong>Returns</strong>: the greatest pointer <code>t</code> where <code>reinterpret_cast&lt;void*&gt;(t) &gt;= reinterpret_cast&lt;void*&gt;p</code> and <code>t</code> is aligned to <code>a</code>, or <code>nullptr</code> if <code>p == nullptr</code>.</p>
 
 <pre><code>template &lt;class pointer&gt;
   nullptr_t align_up_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
@@ -306,31 +317,23 @@ template &lt;class pointer, class U&gt;
   nullptr_t align_down_cast(nullptr_t, size_t a=1) { (void)a; return nullptr; }
 </code></pre>
 
-<p>These functions are designed to become the standard way of doing a <code>reinterpret_cast</code> and an alignment adjustment all in one operation which
-can optionally be checked by the implementation for correctness.</p>
+<p>Again, we add <code>nullptr_t</code> overloads. </p>
 
 <h3>Shared Requirements</h3>
-
-<p>Returns <code>nullptr</code> if:</p>
-
-<ul>
-<li><code>p == nullptr</code></li>
-</ul>
 
 <p>The result is undefined if any of:</p>
 
 <ul>
-<li><code>a &lt; alignof(T)</code></li>
 <li><code>a == 0</code></li>
 <li><code>a</code> is not a power of 2</li>
-<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> (note: this would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> --end note).</li>
+<li><code>a &gt; std::numeric_limits&lt;uintptr_t&gt;::max()</code> [<em>Note</em>: this would require a platform where <code>sizeof(size_t) &gt; sizeof(uintptr_t)</code> <em>--end note</em>].</li>
 </ul>
 
 <p>The result is implementation-defined if the result is not undefined and any of:</p>
 
 <ul>
 <li><code>a &gt; PTRDIFF_MAX</code></li>
-<li><code>p != nullptr</code> does not point to an existing <em>memory block</em></li>
+<li><code>p != nullptr</code> and <code>p</code> does not point to an existing <em>memory block</em></li>
 <li>The result does not reside within the same <em>memory block</em> as <code>p</code></li>
 </ul>
 
@@ -343,7 +346,7 @@ can optionally be checked by the implementation for correctness.</p>
 
 template &lt;class pointer, class U&gt;
   inline pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer&lt;pointer&gt;::type)) {
-    return reinterpret_cast&lt;pointer&gt;(align_down(p), a));
+    return reinterpret_cast&lt;pointer&gt;(align_down(p, a));
   }
 </code></pre>
 
@@ -373,7 +376,7 @@ template &lt;class pointer, class U&gt;
 <li>Simd loops</li>
 <li>Simd aligned loads and stores</li>
 <li>Marshaling data for device drivers</li>
-<li>Formatting data for GPU buffers in Graphics API's like OpenGL</li>
+<li>Formatting data for GPU buffers in Graphics API's such as OpenGL</li>
 </ul>
 
 <h2>Usage Examples</h2>
