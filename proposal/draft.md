@@ -144,17 +144,17 @@ For all of the following, `std::is_integral<integral>::value && !std::is_same<in
     template<class integral>
       constexpr bool is_aligned(integral x, size_t a) noexcept;
 
-Returns `true` if `x == 0` or `x` is a multiple of `a`.
+**Returns**: `true` if `x == 0` or `x` is a multiple of `a`.
 
     template<class integral>
       constexpr integral align_up(integral x, size_t a) noexcept;
 
-Returns `n`, where `n` is the least number `>= x` and `is_aligned(n, a)`.
+**Returns**: `n`, where `n` is the least number `>= x` and `is_aligned(n, a)`.
 
     template<class integral>
       constexpr integral align_down(integral x, size_t a) noexcept;
 
-Returns `n`, where `n` is the greatest number `<= x` and `is_aligned(n, a)`.
+**Returns**: `n`, where `n` is the greatest number `<= x` and `is_aligned(n, a)`.
 
 
 ### Shared Requirements 
@@ -198,7 +198,7 @@ All of these implementations are trivial, efficient, and portable.
 
     bool is_aligned(const volatile void* p, size_t a);
 
-Returns `true` if `p == nullptr` or `p` is aligned to `a`, otherwise return `false`.
+**Returns**: `true` if `p == nullptr` or `p` is aligned to `a`, otherwise return `false`.
 
 #### Requirements
 
@@ -221,12 +221,12 @@ For all of the following `std::is_pointer<pointer>::value == true`
     template <class pointer>
       pointer align_up(pointer p, size_t a);
 
-Returns the least pointer `t` such that `t >= p` and `is_aligned(t, a) == true`, or `nullptr` if `p == nullptr`.
+**Returns**: the least pointer `t` such that `t >= p` and `is_aligned(t, a) == true`, or `nullptr` if `p == nullptr`.
 
     template <class pointer>
       pointer align_down(pointer p, size_t a);
 
-Returns the greatest pointer `t` such that `t <= p` and `is_aligned(t, a) == true`, or `nullptr` if `p == nullptr`.
+**Returns**: the greatest pointer `t` such that `t <= p` and `is_aligned(t, a) == true`, or `nullptr` if `p == nullptr`.
 
     nullptr_t align_up(nullptr_t, size_t) { return nullptr; }
     nullptr_t align_down(nullptr_t, size_t) { return nullptr; }
@@ -280,12 +280,12 @@ can optionally be checked by the implementation for correctness.
     template <class pointer, class U>
       pointer align_up_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
-Returns the least pointer `t` where `reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p` and `t` is aligned to `a`, or `nullptr` if `p == nullptr`.
+**Returns**: the least pointer `t` where `reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p` and `t` is aligned to `a`, or `nullptr` if `p == nullptr`.
 
     template <class pointer, class U>
       pointer align_down_cast(U* p, size_t a=alignof(typename std::remove_pointer<pointer>::type))
 
-Returns the greatest pointer `t` where `reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p` and `t` is aligned to `a`, or `nullptr` if `p == nullptr`.
+**Returns**: the greatest pointer `t` where `reinterpret_cast<void*>(t) >= reinterpret_cast<void*>p` and `t` is aligned to `a`, or `nullptr` if `p == nullptr`.
 
 
     template <class pointer>
